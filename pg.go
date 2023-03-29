@@ -1,4 +1,4 @@
-// Implements pg protocol
+// Package pg Implements pg communication protocol
 package pg
 
 import (
