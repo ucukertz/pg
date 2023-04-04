@@ -84,7 +84,7 @@ func TestPgMk(t *testing.T) {
 	t.Logf("p5-2: %s", p)
 
 	dvp, err = p.GetDVP()
-	t.Logf("dvp5-2: %s data: %s", dvp, dvp.dataRaw)
+	t.Logf("dvp5-2: %s", dvp)
 
 	buf = MkDvSetStr(DvgSensor, 0, d)
 	t.Logf("5-3: %x", buf)
@@ -95,7 +95,7 @@ func TestPgMk(t *testing.T) {
 	t.Logf("p5-3: %s", p)
 
 	dvp, err = p.GetDVP()
-	t.Logf("dvp5-3: %s data: %s", dvp, dvp.dataRaw)
+	t.Logf("dvp5-3: %s", dvp)
 
 	buf = MkDvSetBool(DvgControl, 255, 100 /* Intentional */)
 	t.Logf("5-4: %x", buf)
@@ -183,7 +183,7 @@ func TestPgMk(t *testing.T) {
 	t.Logf("p6-2: %s", p)
 
 	dvp, err = p.GetDVP()
-	t.Logf("dvp6-2: %s data: %s", dvp, dvp.dataRaw)
+	t.Logf("dvp6-2: %s", dvp)
 
 	buf = MkDvRepStr(DvgSensor, 0, d)
 	t.Logf("6-3: %x", buf)
@@ -194,7 +194,7 @@ func TestPgMk(t *testing.T) {
 	t.Logf("p6-3: %s", p)
 
 	dvp, err = p.GetDVP()
-	t.Logf("dvp6-3: %s data: %s", dvp, dvp.dataRaw)
+	t.Logf("dvp6-3: %s", dvp)
 
 	buf = MkDvRepBool(DvgControl, 255, 100 /* Intentional */)
 	t.Logf("6-4: %x", buf)

@@ -162,8 +162,17 @@ func (t DVtype)String() string {
 }
 
 func (p DvPkt)String() string {
-	return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x] data: %d",
-	p.group, p.id, p.dtype, p.dlen, p.dataRaw, p.data)
+	switch (p.dtype) {
+	case DVtypeRaw:
+		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x]",
+		p.group, p.id, p.dtype, p.dlen, p.dataRaw)
+	case DVtypeString:
+		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x] data: %s",
+		p.group, p.id, p.dtype, p.dlen, p.dataRaw, p.dataRaw)
+	default:
+		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x] data: %d",
+		p.group, p.id, p.dtype, p.dlen, p.dataRaw, p.data)
+	}
 }
 
 func (p SchPkt)String() string {
