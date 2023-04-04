@@ -29,7 +29,7 @@ func TestPgMk(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Logf("p1-2: %s data: %s", p, p.data)
+	t.Logf("p1-2: %s data: %s", p, p.Data)
 
 	buf = MkNetResetReq(NetSC)
 	t.Logf("2-1: %x", buf)
@@ -287,24 +287,24 @@ func TestPgMk(t *testing.T) {
 	t.Logf("p7-3: %s", p)
 
 	sch := make([]SchPkt, 2)
-	sch[0].id = 0
-	sch[0].weekdays = 0b01000000
-	sch[0].hour = 23
-	sch[0].minute = 59
-	sch[0].dvp.group = DvgControl
-	sch[0].dvp.id = 255
-	sch[0].dvp.dtype = DVtypeString
-	sch[0].dvp.dlen = uint16(len(d))
-	sch[0].dvp.dataRaw = []uint8(d)
+	sch[0].Id = 0
+	sch[0].Weekdays = 0b01000000
+	sch[0].Hour = 23
+	sch[0].Minute = 59
+	sch[0].Dvp.Group = DvgControl
+	sch[0].Dvp.Id = 255
+	sch[0].Dvp.Dtype = DVtypeString
+	sch[0].Dvp.Dlen = uint16(len(d))
+	sch[0].Dvp.DataRaw = []uint8(d)
 
-	sch[1].id = 1
-	sch[1].weekdays = 0b00010010
-	sch[1].hour = 22
-	sch[1].minute = 58
-	sch[1].dvp.group = DvgControl
-	sch[1].dvp.id = 254
-	sch[1].dvp.dtype = DVtypeUint
-	sch[1].dvp.data = math.MaxUint32-1
+	sch[1].Id = 1
+	sch[1].Weekdays = 0b00010010
+	sch[1].Hour = 22
+	sch[1].Minute = 58
+	sch[1].Dvp.Group = DvgControl
+	sch[1].Dvp.Id = 254
+	sch[1].Dvp.Dtype = DVtypeUint
+	sch[1].Dvp.Data = math.MaxUint32-1
 
 	buf = MkSchSet(sch)
 	t.Logf("8-1: %x", buf)

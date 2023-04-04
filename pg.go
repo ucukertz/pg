@@ -10,40 +10,40 @@ import (
 
 // Unbuilt pg packet
 type BuildPkt struct {
-	ver uint8
-	commandID CmdID
-	dataLen uint16
-	data []uint8
+	Ver uint8
+	CommandID CmdID
+	DataLen uint16
+	Data []uint8
 }
 
 // Base pg packet
 type BasePkt struct {
-	ver uint8
-	commandID CmdID
-	dataLen uint16
-	data []uint8
-	buf []uint8
-	chksum uint8
+	Ver uint8
+	CommandID CmdID
+	DataLen uint16
+	Data []uint8
+	Buf []uint8
+	Chksum uint8
 }
 
 // DV packet
 type DvPkt struct {
-	group DVGroup
-	id uint8
-	dtype DVtype
-	dlen uint16
-	dataRaw []uint8
-	data uint32
-	buf []uint8
+	Group DVGroup
+	Id uint8
+	Dtype DVtype
+	Dlen uint16
+	DataRaw []uint8
+	Data uint32
+	Buf []uint8
 }
 
 // Schedule packet
 type SchPkt struct {
-	id uint8
-	weekdays uint8
-	hour uint8
-	minute uint8
-	dvp DvPkt
+	Id uint8
+	Weekdays uint8
+	Hour uint8
+	Minute uint8
+	Dvp DvPkt
 }
 
 var PgVer uint8 = 0 // Active pg version
@@ -74,19 +74,19 @@ func ChksumVerify(buf []uint8, chksum uint8) error {
 
 // Create unbuilt packet with cid as Command ID
 func Create(cid CmdID) BuildPkt {
-	return BuildPkt{ver: PgVer, commandID: cid, dataLen: 0, data: []uint8{}}
+	return BuildPkt{Ver: PgVer, CommandID: cid, DataLen: 0, Data: []uint8{}}
 }
 
 // Append one byte to unbuilt packet
 func (pkt *BuildPkt)AppendOne(data uint8) {
-	pkt.dataLen += 1
-	pkt.data = append(pkt.data, data)
+	pkt.DataLen += 1
+	pkt.Data = append(pkt.Data, data)
 }
 
 // Append multiple bytes to unbuilt packet
 func (pkt *BuildPkt)Append(data []uint8) {
-	pkt.dataLen += uint16(len(data))
-	pkt.data = append(pkt.data, data...)
+	pkt.DataLen += uint16(len(data))
+	pkt.Data = append(pkt.Data, data...)
 }
 
 // Build DV packet from parameters then append it to unbuilt packet
@@ -124,18 +124,18 @@ func (pkt *BuildPkt)AppendDVPktFixed(g DVGroup, id uint8, t DVtype, dlen uint16,
 
 // Transform unbuilt packet into base packet
 func (p BuildPkt)Build() BasePkt {
-	Pkt := BasePkt{ver: p.ver, commandID: p.commandID, dataLen: p.dataLen, data: p.data}
-	Pkt.buf = []uint8{Head1, Head2, Pkt.ver, Pkt.commandID}
-	Pkt.buf = binary.BigEndian.AppendUint16(Pkt.buf, Pkt.dataLen)
-	Pkt.buf = append(Pkt.buf, Pkt.data...)
-	chksum := Chksum(Pkt.buf)
-	Pkt.buf = append(Pkt.buf, chksum)
+	Pkt := BasePkt{Ver: p.Ver, CommandID: p.CommandID, DataLen: p.DataLen, Data: p.Data}
+	Pkt.Buf = []uint8{Head1, Head2, Pkt.Ver, Pkt.CommandID}
+	Pkt.Buf = binary.BigEndian.AppendUint16(Pkt.Buf, Pkt.DataLen)
+	Pkt.Buf = append(Pkt.Buf, Pkt.Data...)
+	chksum := Chksum(Pkt.Buf)
+	Pkt.Buf = append(Pkt.Buf, chksum)
 	return Pkt
 }
 
 func (p BasePkt)String() string {
 	return fmt.Sprintf("ver: %d cmd: %d dlen: %d, data:[0x%x] cs: 0x%x",
-	p.ver, p.commandID, p.dataLen, p.data, p.chksum)
+	p.Ver, p.CommandID, p.DataLen, p.Data, p.Chksum)
 }
 
 func (g DVGroup)String() string {
@@ -162,35 +162,35 @@ func (t DVtype)String() string {
 }
 
 func (p DvPkt)String() string {
-	switch (p.dtype) {
+	switch (p.Dtype) {
 	case DVtypeRaw:
 		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x]",
-		p.group, p.id, p.dtype, p.dlen, p.dataRaw)
+		p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw)
 	case DVtypeString:
 		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x] data: %s",
-		p.group, p.id, p.dtype, p.dlen, p.dataRaw, p.dataRaw)
+		p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw, p.DataRaw)
 	default:
 		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x] data: %d",
-		p.group, p.id, p.dtype, p.dlen, p.dataRaw, p.data)
+		p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw, p.Data)
 	}
 }
 
 func (p SchPkt)String() string {
-	return fmt.Sprintf("id: %d wdays: %08b hour: %d minute: %d dvp:[%s]", p.id, p.weekdays, p.hour, p.minute, p.dvp)
+	return fmt.Sprintf("id: %d wdays: %08b hour: %d minute: %d dvp:[%s]", p.Id, p.Weekdays, p.Hour, p.Minute, p.Dvp)
 }
 
 // Make handshake packet
 func MkHandshake(hs Handshake) []uint8 {
 	p := Create(CmdHandshake)
 	p.AppendOne(hs)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make device info request packet
 func MkDevInfoReq(rb DeviceInfoRB) []uint8 {
 	p := Create(CmdDeviceInfo)
 	p.AppendOne(rb)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make device info response packet
@@ -198,40 +198,40 @@ func MkDevInfoResp(rb DeviceInfoRB, resp string) []uint8 {
 	p := Create(CmdDeviceInfo)
 	p.AppendOne(rb)
 	p.Append([]uint8(resp))
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make network reset request packet
 func MkNetResetReq(rb NetworkResetRB) []uint8 {
 	p := Create(CmdNetworkReset)
 	p.AppendOne(rb)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make network reset acknowledgement packet
 func MkNetResetACK() []uint8 {
 	p := Create(CmdNetworkReset)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make network status report packet
 func MkNetStatusReport(r NetworkStatusData) []uint8 {
 	p := Create(CmdNetworkStatus)
 	p.AppendOne(r)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make network status report acknowledgement packet
 func MkNetStatusReportACK() []uint8 {
 	p := Create(CmdNetworkStatus)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make time synchronization request packet
 func MkTsyncReq(rb TimesyncRB) []uint8 {
 	p := Create(CmdTimeSync)
 	p.AppendOne(rb)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make time synchronization response packet
@@ -245,13 +245,13 @@ func MkTsyncResp(rb TimesyncRB, tm time.Time) []uint8 {
 	p.AppendOne(uint8(tm.Hour()))
 	p.AppendOne(uint8(tm.Minute()))
 	p.AppendOne(uint8(tm.Second()))
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make DV reset request packet
 func MkDvResetAllReq() []uint8 {
 	p := Create(CmdDVSet)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Enforce DV data length for DV data types with fixed length
@@ -272,7 +272,7 @@ func MkDVS(g DVGroup, id uint8, t DVtype, dlen uint16, data []uint8) []uint8 {
 	p := Create(CmdDVSet)
 	dlen = EnforceDVlen(t, dlen)
 	p.AppendDVPkt(g, id, t, dlen, data)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 
@@ -331,7 +331,7 @@ func MkDVR(g DVGroup, id uint8, t DVtype, dlen uint16, data []uint8) []uint8 {
 	p := Create(CmdDVReport)
 	dlen = EnforceDVlen(t, dlen)
 	p.AppendDVPkt(g, id, t, dlen, data)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make DV report packet: Raw
@@ -387,14 +387,14 @@ func MkDvRepBmap4(g DVGroup, id uint8, data uint32) []uint8 {
 // Make DV fault report request packet 
 func MkDvFaultAllReq() []uint8 {
 	p := Create(CmdDVFault)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make DV fault report packet: No fault on all DV 
 func MkDvNoFaultAll() []uint8 {
 	p := Create(CmdDVFault)
 	p.AppendOne(0)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make DV fault report packet
@@ -403,20 +403,20 @@ func MkDvFaultRep(g DVGroup, id uint8, f DVfault) []uint8 {
 	p.AppendOne(uint8(g))
 	p.AppendOne(id)
 	p.AppendOne(f)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make schedule clear request packet
 func MkSchEraseAllReq() []uint8 {
 	p := Create(CmdSchedule)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make schedule execution report packet
 func MkSchExecReport(schId uint8) []uint8 {
 	p := Create(CmdSchedule)
 	p.AppendOne(schId)
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Make schedule set packet
@@ -424,18 +424,18 @@ func MkSchSet(schList []SchPkt) []uint8 {
 	p := Create(CmdSchedule)
 	p.AppendOne(uint8(len(schList)))
 	for _, sch := range schList {
-		p.AppendOne(sch.id)
-		p.AppendOne(sch.weekdays)
-		p.AppendOne(sch.hour)
-		p.AppendOne(sch.minute)
-		dvp := sch.dvp
-		if (sch.dvp.dtype != DVtypeRaw && sch.dvp.dtype != DVtypeString) {
-			p.AppendDVPktFixed(dvp.group, dvp.id, dvp.dtype, dvp.dlen, dvp.data)
+		p.AppendOne(sch.Id)
+		p.AppendOne(sch.Weekdays)
+		p.AppendOne(sch.Hour)
+		p.AppendOne(sch.Minute)
+		dvp := sch.Dvp
+		if (sch.Dvp.Dtype != DVtypeRaw && sch.Dvp.Dtype != DVtypeString) {
+			p.AppendDVPktFixed(dvp.Group, dvp.Id, dvp.Dtype, dvp.Dlen, dvp.Data)
 		} else {
-			p.AppendDVPkt(dvp.group, dvp.id, dvp.dtype, dvp.dlen, dvp.dataRaw)
+			p.AppendDVPkt(dvp.Group, dvp.Id, dvp.Dtype, dvp.Dlen, dvp.DataRaw)
 		}
 	}
-	return p.Build().buf
+	return p.Build().Buf
 }
 
 // Parse buffer into base packet
@@ -454,29 +454,29 @@ func Parse(buf []uint8) (BasePkt, error) {
 		return BasePkt{}, err
 	}
 
-	pkt := BasePkt{ver: buf[IdxVer], commandID: CmdID(buf[IdxCmd])}
+	pkt := BasePkt{Ver: buf[IdxVer], CommandID: CmdID(buf[IdxCmd])}
 	dlenSlice := buf[IdxDlen:IdxDlen+IdxBasePkt(DlenLen)]
 	r := bytes.NewReader(dlenSlice)
-	binary.Read(r, binary.BigEndian, &pkt.dataLen)
-	pkt.data = buf[IdxData:IdxData+IdxBasePkt(pkt.dataLen)]
-	pkt.buf = append(pkt.buf, buf...)
-	pkt.chksum = buf[len(buf)-1]
+	binary.Read(r, binary.BigEndian, &pkt.DataLen)
+	pkt.Data = buf[IdxData:IdxData+IdxBasePkt(pkt.DataLen)]
+	pkt.Buf = append(pkt.Buf, buf...)
+	pkt.Chksum = buf[len(buf)-1]
 
 	return pkt, nil
 }
 
 // Get numeric data from DV packet with fixed-length data type
 func DvpFixedData(p DvPkt) uint32 {
-	if p.dlen == 1 {
-		return uint32(p.dataRaw[0])
-	} else if p.dlen == 2 {
+	if p.Dlen == 1 {
+		return uint32(p.DataRaw[0])
+	} else if p.Dlen == 2 {
 		var data uint16
-		r := bytes.NewReader(p.dataRaw)
+		r := bytes.NewReader(p.DataRaw)
 		binary.Read(r, binary.BigEndian, &data)
 		return uint32(data)
-	} else if p.dlen == 4 {
+	} else if p.Dlen == 4 {
 		var data uint32
-		r := bytes.NewReader(p.dataRaw)
+		r := bytes.NewReader(p.DataRaw)
 		binary.Read(r, binary.BigEndian, &data)
 		return data
 	} else {
@@ -487,20 +487,20 @@ func DvpFixedData(p DvPkt) uint32 {
 // Parse buffer into DV packet
 func ParseDVP(buf []uint8) DvPkt {
 	dvp := DvPkt{}
-	dvp.group = DVGroup(buf[IdxDVPGroup])
-	dvp.id = buf[IdxDVPID]
-	dvp.dtype = DVtype(buf[IdxDVPtype])
+	dvp.Group = DVGroup(buf[IdxDVPGroup])
+	dvp.Id = buf[IdxDVPID]
+	dvp.Dtype = DVtype(buf[IdxDVPtype])
 	dlenSlice := buf[IdxDVPdlen:IdxDVPdlen+IdxDVPkt(DlenLen)]
 	r := bytes.NewReader(dlenSlice)
-	binary.Read(r, binary.BigEndian, &dvp.dlen)
-	dataSlice := buf[IdxDVPdata:IdxDVPdata+IdxDVPkt(dvp.dlen)]
-	dvp.dataRaw = append(dvp.dataRaw, dataSlice...)
-	dvp.buf = buf[:uint16(DVPktMinLen)+dvp.dlen]
+	binary.Read(r, binary.BigEndian, &dvp.Dlen)
+	dataSlice := buf[IdxDVPdata:IdxDVPdata+IdxDVPkt(dvp.Dlen)]
+	dvp.DataRaw = append(dvp.DataRaw, dataSlice...)
+	dvp.Buf = buf[:uint16(DVPktMinLen)+dvp.Dlen]
 
-	if (dvp.dtype != DVtypeRaw && dvp.dtype != DVtypeString) {
-		dvp.data = DvpFixedData(dvp)
+	if (dvp.Dtype != DVtypeRaw && dvp.Dtype != DVtypeString) {
+		dvp.Data = DvpFixedData(dvp)
 	} else { 
-		dvp.data = 0 
+		dvp.Data = 0 
 	}
 	return dvp
 }
@@ -509,32 +509,32 @@ func ParseDVP(buf []uint8) DvPkt {
 // Can only be used when base packet data contains only and exclusively one DV packet
 func (p BasePkt)GetDVP() (DvPkt, error) {
 	dvp := DvPkt{}
-	if (len(p.data) < int(DVPktMinLen)) {
+	if (len(p.Data) < int(DVPktMinLen)) {
 		return dvp, fmt.Errorf("DVP: Buffer is too short")
 	}
-	if (p.commandID != CmdDVSet && p.commandID != CmdDVReport) {
+	if (p.CommandID != CmdDVSet && p.CommandID != CmdDVReport) {
 		return dvp, fmt.Errorf("DVP: Wrong command ID")
 	}
-	return ParseDVP(p.data), nil
+	return ParseDVP(p.Data), nil
 }
 
 // Get schedule list from base packet
 func (p BasePkt)GetSchList() ([]SchPkt, error) {
-	if (p.commandID != CmdSchedule) {
+	if (p.CommandID != CmdSchedule) {
 		return []SchPkt{}, fmt.Errorf("SCH: Wrong command ID")
 	}
 
-	schNum := p.data[0]
+	schNum := p.Data[0]
 	schList := make([]SchPkt, schNum)
 	pIdx := 1
 	for i := range schList {
-		schList[i].id = p.data[pIdx+int(IdxSchpID)]
-		schList[i].weekdays = p.data[pIdx+int(IdxSchpWday)]
-		schList[i].hour = p.data[pIdx+int(IdxSchpHour)]
-		schList[i].minute = p.data[pIdx+int(IdxSchpMinute)]
-		schList[i].dvp = ParseDVP(p.data[pIdx+int(IdxSchpDvp):])
-		pIdx += int(SchHeadLen)+int(DVPktMinLen)+int(schList[i].dvp.dlen)
-		if (pIdx > int(p.dataLen)+1) {
+		schList[i].Id = p.Data[pIdx+int(IdxSchpID)]
+		schList[i].Weekdays = p.Data[pIdx+int(IdxSchpWday)]
+		schList[i].Hour = p.Data[pIdx+int(IdxSchpHour)]
+		schList[i].Minute = p.Data[pIdx+int(IdxSchpMinute)]
+		schList[i].Dvp = ParseDVP(p.Data[pIdx+int(IdxSchpDvp):])
+		pIdx += int(SchHeadLen)+int(DVPktMinLen)+int(schList[i].Dvp.Dlen)
+		if (pIdx > int(p.DataLen)+1) {
 			return []SchPkt{}, fmt.Errorf("More schedules expected")
 		}
 	}
