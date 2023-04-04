@@ -125,7 +125,7 @@ func (pkt *BuildPkt)AppendDVPktFixed(g DVGroup, id uint8, t DVtype, dlen uint16,
 // Transform unbuilt packet into base packet
 func (p BuildPkt)Build() BasePkt {
 	Pkt := BasePkt{ver: p.ver, commandID: p.commandID, dataLen: p.dataLen, data: p.data}
-	Pkt.buf = []uint8{Head1, Head2, Pkt.ver, uint8(Pkt.commandID)}
+	Pkt.buf = []uint8{Head1, Head2, Pkt.ver, Pkt.commandID}
 	Pkt.buf = binary.BigEndian.AppendUint16(Pkt.buf, Pkt.dataLen)
 	Pkt.buf = append(Pkt.buf, Pkt.data...)
 	chksum := Chksum(Pkt.buf)
@@ -173,21 +173,21 @@ func (p SchPkt)String() string {
 // Make handshake packet
 func MkHandshake(hs Handshake) []uint8 {
 	p := Create(CmdHandshake)
-	p.AppendOne(uint8(hs))
+	p.AppendOne(hs)
 	return p.Build().buf
 }
 
 // Make device info request packet
 func MkDevInfoReq(rb DeviceInfoRB) []uint8 {
 	p := Create(CmdDeviceInfo)
-	p.AppendOne(uint8(rb))
+	p.AppendOne(rb)
 	return p.Build().buf
 }
 
 // Make device info response packet
 func MkDevInfoResp(rb DeviceInfoRB, resp string) []uint8 {
 	p := Create(CmdDeviceInfo)
-	p.AppendOne(uint8(rb))
+	p.AppendOne(rb)
 	p.Append([]uint8(resp))
 	return p.Build().buf
 }
@@ -195,7 +195,7 @@ func MkDevInfoResp(rb DeviceInfoRB, resp string) []uint8 {
 // Make network reset request packet
 func MkNetResetReq(rb NetworkResetRB) []uint8 {
 	p := Create(CmdNetworkReset)
-	p.AppendOne(uint8(rb))
+	p.AppendOne(rb)
 	return p.Build().buf
 }
 
@@ -208,7 +208,7 @@ func MkNetResetACK() []uint8 {
 // Make network status report packet
 func MkNetStatusReport(r NetworkStatusData) []uint8 {
 	p := Create(CmdNetworkStatus)
-	p.AppendOne(uint8(r))
+	p.AppendOne(r)
 	return p.Build().buf
 }
 
@@ -221,14 +221,14 @@ func MkNetStatusReportACK() []uint8 {
 // Make time synchronization request packet
 func MkTsyncReq(rb TimesyncRB) []uint8 {
 	p := Create(CmdTimeSync)
-	p.AppendOne(uint8(rb))
+	p.AppendOne(rb)
 	return p.Build().buf
 }
 
 // Make time synchronization response packet
 func MkTsyncResp(rb TimesyncRB, tm time.Time) []uint8 {
 	p := Create(CmdTimeSync)
-	p.AppendOne(uint8(rb))
+	p.AppendOne(rb)
 	p.AppendOne(uint8(tm.Year()-100))
 	p.AppendOne(uint8(tm.Month()))
 	p.AppendOne(uint8(tm.Day()))
@@ -393,7 +393,7 @@ func MkDvFaultRep(g DVGroup, id uint8, f DVfault) []uint8 {
 	p := Create(CmdDVFault)
 	p.AppendOne(uint8(g))
 	p.AppendOne(id)
-	p.AppendOne(uint8(f))
+	p.AppendOne(f)
 	return p.Build().buf
 }
 
@@ -486,7 +486,7 @@ func ParseDVP(buf []uint8) DvPkt {
 	binary.Read(r, binary.BigEndian, &dvp.dlen)
 	dataSlice := buf[IdxDVPdata:IdxDVPdata+IdxDVPkt(dvp.dlen)]
 	dvp.dataRaw = append(dvp.dataRaw, dataSlice...)
-	dvp.buf = buf[:DVPktMinLen+uint8(dvp.dlen)]
+	dvp.buf = buf[:uint16(DVPktMinLen)+dvp.dlen]
 
 	if (dvp.dtype != DVtypeRaw && dvp.dtype != DVtypeString) {
 		dvp.data = DvpFixedData(dvp)

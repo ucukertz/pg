@@ -10,7 +10,7 @@ const (
 	SchHeadLen uint8 = 4
 )
 
-type CmdID uint8 // Command ID
+type CmdID = uint8 // Command ID
 const (
 	CmdHandshake CmdID = iota // Handshake
 	CmdDeviceInfo // Device info
@@ -23,7 +23,7 @@ const (
 	CmdSchedule // Data Value scheduling
 )
 
-type Handshake uint8 // Handshake data byte
+type Handshake = uint8 // Handshake data byte
 const (
 	Heartbeat Handshake = iota // This device is alive
 	HeartbeatACK // Acknowledge the other device is alive
@@ -31,20 +31,20 @@ const (
 	TxProcessed // All data needed was already processed
 )
 
-type DeviceInfoRB uint8 // Device info request byte
+type DeviceInfoRB = uint8 // Device info request byte
 const (
 	TopicPrefix DeviceInfoRB = iota
 	DevicePrefix
 	DeviceName
 )
 
-type DeviceInfoIdx uint8
+type DeviceInfoIdx = uint8
 const (
 	IdxDevInfoReqbyte DeviceInfoIdx = iota
 	IdxDevInfoResp
 )
 
-type NetworkResetRB uint8 // Network reset request byte
+type NetworkResetRB = uint8 // Network reset request byte
 const (
 	NetDefault NetworkResetRB = iota
 	NetAP // Access Point
@@ -53,7 +53,7 @@ const (
 	NetFactory NetworkResetRB = 0xFF
 )
 
-type NetworkStatusData uint8
+type NetworkStatusData = uint8
 const (
 	NetNG NetworkStatusData = iota // Not configured
 	NetRouterNG // Configured but not connected to router
@@ -66,13 +66,13 @@ const (
 	PairingQC // Quick
 )
 
-type TimesyncRB uint8 // Time synchronization request byte
+type TimesyncRB = uint8 // Time synchronization request byte
 const (
 	TsyncUTC TimesyncRB = iota
 	TsyncLocal
 )
 
-type TimeSyncIdx uint8
+type TimeSyncIdx = uint8
 const (
 	IdxTsyncReqbyte TimeSyncIdx = iota
 	IdxTsyncYear
@@ -103,7 +103,7 @@ const (
 	DVtypeBmap4
 )
 
-type IdxBasePkt uint8
+type IdxBasePkt = uint8
 const (
 	IdxHead1 IdxBasePkt = iota
 	IdxHead2
@@ -113,7 +113,7 @@ const (
 	IdxData IdxBasePkt = IdxDlen + IdxBasePkt(DlenLen)
 )
 
-type IdxDVPkt uint8
+type IdxDVPkt = uint8
 const (
 	IdxDVPGroup IdxDVPkt = iota
 	IdxDVPID
@@ -122,7 +122,7 @@ const (
 	IdxDVPdata IdxDVPkt = IdxDVPdlen+IdxDVPkt(DlenLen)
 )
 
-type DvtypeLen uint8 // Fixed data Length of some DV types
+type DvtypeLen = uint8 // Fixed data Length of some DV types
 const (
 	LenBool DvtypeLen = 1
 	LenEnum DvtypeLen = 1
@@ -132,7 +132,7 @@ const (
 	LenBmap4 DvtypeLen = 4
 )
 
-type DVfault uint8 // Data value fault
+type DVfault = uint8 // Data value fault
 const (
 	DvfNone DVfault = iota
 	DvfUnknown
@@ -144,14 +144,14 @@ const (
 	DvfMalformed
 )
 
-type IdxDvfault uint8
+type IdxDvfault = uint8
 const (
 	IdxDvfGroup IdxDvfault = iota
 	IdxDvfID
 	IdxDvfStatus
 )
 
-type idxSchPkt uint8
+type idxSchPkt = uint8
 const (
 	IdxSchpID idxSchPkt = iota
 	IdxSchpWday
