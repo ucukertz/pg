@@ -10,52 +10,52 @@ import (
 
 // Unbuilt pg packet
 type BuildPkt struct {
-	Ver uint8
+	Ver byte
 	CommandID CmdID
 	DataLen uint16
-	Data []uint8
+	Data []byte
 }
 
 // Base pg packet
 type BasePkt struct {
-	Ver uint8
+	Ver byte
 	CommandID CmdID
 	DataLen uint16
-	Data []uint8
-	Buf []uint8
-	Chksum uint8
+	Data []byte
+	Buf []byte
+	Chksum byte
 }
 
-// DV packet
-type DvPkt struct {
-	Group DVGroup
-	Id uint8
-	Dtype DVtype
+// DE packet
+type DePkt struct {
+	Group DEGroup
+	Id byte
+	Dtype DEtype
 	Dlen uint16
-	DataRaw []uint8
+	DataRaw []byte
 	Data uint32
-	Buf []uint8
+	Buf []byte
 }
 
 // Schedule packet
 type SchPkt struct {
-	Id uint8
-	Weekdays uint8
-	Hour uint8
-	Minute uint8
-	Dvp DvPkt
+	Id byte
+	Weekdays byte
+	Hour byte
+	Minute byte
+	Dep DePkt
 }
 
-var PgVer uint8 = 0 // Active pg version
+var PgVer byte = 0 // Active pg version
 
 // Set active pg version
-func SetVer(ver uint8) {
+func SetVer(ver byte) {
 	PgVer = ver
 }
 
 // Sum of all bytes in slice
-func Chksum(buf []uint8) uint8 {
-	var chksum uint8 = 0
+func Chksum(buf []byte) byte {
+	var chksum byte = 0
 	for _, b := range buf {
 		chksum += b
 	}
@@ -63,7 +63,7 @@ func Chksum(buf []uint8) uint8 {
 }
 
 // Verify checksum of buf is the same as chksum
-func ChksumVerify(buf []uint8, chksum uint8) error {
+func ChksumVerify(buf []byte, chksum byte) error {
 	expected := Chksum(buf)
 	if chksum == expected {
 		return nil
@@ -74,49 +74,49 @@ func ChksumVerify(buf []uint8, chksum uint8) error {
 
 // Create unbuilt packet with cid as Command ID
 func Create(cid CmdID) BuildPkt {
-	return BuildPkt{Ver: PgVer, CommandID: cid, DataLen: 0, Data: []uint8{}}
+	return BuildPkt{Ver: PgVer, CommandID: cid, DataLen: 0, Data: []byte{}}
 }
 
 // Append one byte to unbuilt packet
-func (pkt *BuildPkt)AppendOne(data uint8) {
+func (pkt *BuildPkt)AppendOne(data byte) {
 	pkt.DataLen += 1
 	pkt.Data = append(pkt.Data, data)
 }
 
 // Append multiple bytes to unbuilt packet
-func (pkt *BuildPkt)Append(data []uint8) {
+func (pkt *BuildPkt)Append(data []byte) {
 	pkt.DataLen += uint16(len(data))
 	pkt.Data = append(pkt.Data, data...)
 }
 
-// Build DV packet from parameters then append it to unbuilt packet
-func (pkt *BuildPkt)AppendDVPkt(g DVGroup, id uint8, t DVtype, dlen uint16, data []uint8) {
-	pkt.AppendOne(uint8(g))
+// Build DE packet from parameters then append it to unbuilt packet
+func (pkt *BuildPkt)AppendDEPkt(g DEGroup, id byte, t DEtype, dlen uint16, data []byte) {
+	pkt.AppendOne(byte(g))
 	pkt.AppendOne(id)
-	pkt.AppendOne(uint8(t))
-	dlenBig := []uint8{}
+	pkt.AppendOne(byte(t))
+	dlenBig := []byte{}
 	dlenBig = binary.BigEndian.AppendUint16(dlenBig, dlen)
 	pkt.Append(dlenBig)
 	pkt.Append(data[:dlen])
 }
 
-// Build DV packet with fixed data length from parameters then append it to unbuilt packet
-func (pkt *BuildPkt)AppendDVPktFixed(g DVGroup, id uint8, t DVtype, dlen uint16, data uint32) {
-	dlen = EnforceDVlen(t, dlen)
-	pkt.AppendOne(uint8(g))
+// Build DE packet with fixed data length from parameters then append it to unbuilt packet
+func (pkt *BuildPkt)AppendDEPktFixed(g DEGroup, id byte, t DEtype, dlen uint16, data uint32) {
+	dlen = EnforceDElen(t, dlen)
+	pkt.AppendOne(byte(g))
 	pkt.AppendOne(id)
-	pkt.AppendOne(uint8(t))
-	dlenBig := []uint8{}
+	pkt.AppendOne(byte(t))
+	dlenBig := []byte{}
 	dlenBig = binary.BigEndian.AppendUint16(dlenBig, dlen)
 	pkt.Append(dlenBig)
 	if dlen == 1 {
-		pkt.AppendOne(uint8(data))
+		pkt.AppendOne(byte(data))
 	} else if dlen == 2 {
-		dataBig := []uint8{}
+		dataBig := []byte{}
 		dataBig = binary.BigEndian.AppendUint16(dataBig, uint16(data))
 		pkt.Append(dataBig)
 	} else if dlen == 4 {
-		dataBig := []uint8{}
+		dataBig := []byte{}
 		dataBig = binary.BigEndian.AppendUint32(dataBig, data)
 		pkt.Append(dataBig)
 	}
@@ -125,7 +125,7 @@ func (pkt *BuildPkt)AppendDVPktFixed(g DVGroup, id uint8, t DVtype, dlen uint16,
 // Transform unbuilt packet into base packet
 func (p BuildPkt)Build() BasePkt {
 	Pkt := BasePkt{Ver: p.Ver, CommandID: p.CommandID, DataLen: p.DataLen, Data: p.Data}
-	Pkt.Buf = []uint8{Head1, Head2, Pkt.Ver, Pkt.CommandID}
+	Pkt.Buf = []byte{Head1, Head2, Pkt.Ver, Pkt.CommandID}
 	Pkt.Buf = binary.BigEndian.AppendUint16(Pkt.Buf, Pkt.DataLen)
 	Pkt.Buf = append(Pkt.Buf, Pkt.Data...)
 	chksum := Chksum(Pkt.Buf)
@@ -138,35 +138,35 @@ func (p BasePkt)String() string {
 	p.Ver, p.CommandID, p.DataLen, p.Data, p.Chksum)
 }
 
-func (g DVGroup)String() string {
+func (g DEGroup)String() string {
 	switch g {
-	case DvgInfo: return "Info"
-	case DvgSensor: return "Sensor"
-	case DvgControl: return "Control"
+	case DegInfo: return "Info"
+	case DegSensor: return "Sensor"
+	case DegControl: return "Control"
 	default: return "Invalid"
 	}
 }
 
-func (t DVtype)String() string {
+func (t DEtype)String() string {
 	switch t {
-	case DVtypeRaw: return "Raw"
-	case DVtypeString: return "String"
-	case DVtypeBool: return "Bool"
-	case DVtypeEnum: return "Enum"
-	case DVtypeUint: return "Uint"
-	case DVtypeBmap1: return "Bmap1"
-	case DVtypeBmap2: return "Bmap2"
-	case DVtypeBmap4: return "Bmap4"
+	case DEtypeRaw: return "Raw"
+	case DEtypeString: return "String"
+	case DEtypeBool: return "Bool"
+	case DEtypeEnum: return "Enum"
+	case DEtypeUint: return "Uint"
+	case DEtypeBmap1: return "Bmap1"
+	case DEtypeBmap2: return "Bmap2"
+	case DEtypeBmap4: return "Bmap4"
 	default: return "Invalid"
 	}
 }
 
-func (p DvPkt)String() string {
+func (p DePkt)String() string {
 	switch (p.Dtype) {
-	case DVtypeRaw:
+	case DEtypeRaw:
 		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x]",
 		p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw)
-	case DVtypeString:
+	case DEtypeString:
 		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x] data: %s",
 		p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw, p.DataRaw)
 	default:
@@ -176,270 +176,288 @@ func (p DvPkt)String() string {
 }
 
 func (p SchPkt)String() string {
-	return fmt.Sprintf("id: %d wdays: %08b hour: %d minute: %d dvp:[%s]", p.Id, p.Weekdays, p.Hour, p.Minute, p.Dvp)
+	return fmt.Sprintf("id: %d wdays: %08b hour: %d minute: %d dep:[%s]", p.Id, p.Weekdays, p.Hour, p.Minute, p.Dep)
 }
 
 // Make handshake packet
-func MkHandshake(hs Handshake) []uint8 {
+func MkHandshake(hs Handshake) []byte {
 	p := Create(CmdHandshake)
 	p.AppendOne(hs)
 	return p.Build().Buf
 }
 
-// Make device info request packet
-func MkDevInfoReq(rb DeviceInfoRB) []uint8 {
-	p := Create(CmdDeviceInfo)
+// Make connection end request handshake packet
+func MkHandshakeEnd() []byte {
+	p := Create(CmdHandshake)
+	return p.Build().Buf
+}
+
+// Make all uplink info request packet
+func MkUinfoReqAll() []byte {
+	p := Create(CmdUplinkInfo)
+	return p.Build().Buf
+}
+
+// Make uplink info request packet
+func MkUinfoReq(rb DeviceInfoRB) []byte {
+	p := Create(CmdUplinkInfo)
 	p.AppendOne(rb)
 	return p.Build().Buf
 }
 
-// Make device info response packet
-func MkDevInfoResp(rb DeviceInfoRB, resp string) []uint8 {
-	p := Create(CmdDeviceInfo)
+// Make uplink info response packet
+func MkUinfoResp(rb DeviceInfoRB, resp string) []byte {
+	p := Create(CmdUplinkInfo)
 	p.AppendOne(rb)
-	p.Append([]uint8(resp))
+	p.Append([]byte(resp))
 	return p.Build().Buf
 }
 
 // Make network reset request packet
-func MkNetResetReq(rb NetworkResetRB) []uint8 {
+func MkNetResetReq(rb NetworkResetRB) []byte {
 	p := Create(CmdNetworkReset)
 	p.AppendOne(rb)
 	return p.Build().Buf
 }
 
 // Make network reset acknowledgement packet
-func MkNetResetACK() []uint8 {
+func MkNetResetACK() []byte {
 	p := Create(CmdNetworkReset)
 	return p.Build().Buf
 }
 
+// Make network status report acknowledgement packet
+func MkNetStatusReportACK() []byte {
+	p := Create(CmdNetworkStatus)
+	return p.Build().Buf
+}
+
 // Make network status report packet
-func MkNetStatusReport(r NetworkStatusData) []uint8 {
+func MkNetStatusReport(r NetworkStatusData) []byte {
 	p := Create(CmdNetworkStatus)
 	p.AppendOne(r)
 	return p.Build().Buf
 }
 
-// Make network status report acknowledgement packet
-func MkNetStatusReportACK() []uint8 {
-	p := Create(CmdNetworkStatus)
+// Make time synchronization not ready packet
+func MkTsyncNotReady() []byte {
+	p := Create(CmdTimeSync)
 	return p.Build().Buf
 }
 
 // Make time synchronization request packet
-func MkTsyncReq(rb TimesyncRB) []uint8 {
+func MkTsyncReq(rb TimesyncRB) []byte {
 	p := Create(CmdTimeSync)
 	p.AppendOne(rb)
 	return p.Build().Buf
 }
 
 // Make time synchronization response packet
-func MkTsyncResp(rb TimesyncRB, tm time.Time) []uint8 {
+func MkTsyncResp(rb TimesyncRB, tm time.Time) []byte {
 	p := Create(CmdTimeSync)
 	p.AppendOne(rb)
-	p.AppendOne(uint8(tm.Year()-100))
-	p.AppendOne(uint8(tm.Month()))
-	p.AppendOne(uint8(tm.Day()))
-	p.AppendOne(uint8(tm.Weekday()))
-	p.AppendOne(uint8(tm.Hour()))
-	p.AppendOne(uint8(tm.Minute()))
-	p.AppendOne(uint8(tm.Second()))
+	p.AppendOne(byte(tm.Year()-100))
+	p.AppendOne(byte(tm.Month()))
+	p.AppendOne(byte(tm.Day()))
+	p.AppendOne(byte(tm.Weekday()))
+	p.AppendOne(byte(tm.Hour()))
+	p.AppendOne(byte(tm.Minute()))
+	p.AppendOne(byte(tm.Second()))
 	return p.Build().Buf
 }
 
-// Make DV reset request packet
-func MkDvResetAllReq() []uint8 {
-	p := Create(CmdDVSet)
+// Make DE reset request packet
+func MkDeResetAllReq() []byte {
+	p := Create(CmdDESet)
 	return p.Build().Buf
 }
 
-// Enforce DV data length for DV data types with fixed length
-func EnforceDVlen(t DVtype, dlen uint16) uint16 {
+// Enforce DE data length for DE data types with fixed length
+func EnforceDElen(t DEtype, dlen uint16) uint16 {
 	switch t {
-	case DVtypeBool: return uint16(LenBool)
-	case DVtypeEnum: return uint16(LenEnum)
-	case DVtypeUint: return uint16(LenUint)
-	case DVtypeBmap1: return uint16(LenBmap1)
-	case DVtypeBmap2: return uint16(LenBmap2)
-	case DVtypeBmap4: return uint16(LenBmap4)
+	case DEtypeBool: return uint16(LenBool)
+	case DEtypeEnum: return uint16(LenEnum)
+	case DEtypeUint: return uint16(LenUint)
+	case DEtypeBmap1: return uint16(LenBmap1)
+	case DEtypeBmap2: return uint16(LenBmap2)
+	case DEtypeBmap4: return uint16(LenBmap4)
 	default: return dlen 
 	}
 }
 
-// Make DV set packet
-func MkDVS(g DVGroup, id uint8, t DVtype, dlen uint16, data []uint8) []uint8 {
-	p := Create(CmdDVSet)
-	dlen = EnforceDVlen(t, dlen)
-	p.AppendDVPkt(g, id, t, dlen, data)
+// Make DE set packet
+func MkDES(g DEGroup, id byte, t DEtype, dlen uint16, data []byte) []byte {
+	p := Create(CmdDESet)
+	dlen = EnforceDElen(t, dlen)
+	p.AppendDEPkt(g, id, t, dlen, data)
 	return p.Build().Buf
 }
 
 
-// Make DV set packet: Raw
-func MkDvSetRaw(g DVGroup, id uint8, data []uint8) []uint8 {
-	return MkDVS(g, id, DVtypeRaw, uint16(len(data)), data)
+// Make DE set packet: Raw
+func MkDeSetRaw(g DEGroup, id byte, data []byte) []byte {
+	return MkDES(g, id, DEtypeRaw, uint16(len(data)), data)
 }
 
-// Make DV set packet: String
-func MkDvSetStr(g DVGroup, id uint8, data string) []uint8 {
-	return MkDVS(g, id, DVtypeString, uint16(len(data)), []uint8(data))
+// Make DE set packet: String
+func MkDeSetStr(g DEGroup, id byte, data string) []byte {
+	return MkDES(g, id, DEtypeString, uint16(len(data)), []byte(data))
 }
 
-// Make DV set packet: Boolean
-func MkDvSetBool(g DVGroup, id uint8, data uint8) []uint8 {
+// Make DE set packet: Boolean
+func MkDeSetBool(g DEGroup, id byte, data byte) []byte {
 	d := data
 	if d > 1 {
 		d = 1
 	}
-	return MkDVS(g, id, DVtypeBool, uint16(LenBool), []uint8{d})
+	return MkDES(g, id, DEtypeBool, uint16(LenBool), []byte{d})
 }
 
-// Make DV set packet: Enumeration
-func MkDvSetEnum(g DVGroup, id uint8, data uint8) []uint8 {
-	return MkDVS(g, id, DVtypeEnum, uint16(LenEnum), []uint8{data})
+// Make DE set packet: Enumeration
+func MkDeSetEnum(g DEGroup, id byte, data byte) []byte {
+	return MkDES(g, id, DEtypeEnum, uint16(LenEnum), []byte{data})
 }
 
-// Make DV set packet: Uint/value
-func MkDvSetUint(g DVGroup, id uint8, data uint32) []uint8 {
-	dbig := []uint8{}
+// Make DE set packet: Uint/value
+func MkDeSetUint(g DEGroup, id byte, data uint32) []byte {
+	dbig := []byte{}
 	dbig = binary.BigEndian.AppendUint32(dbig, data)
-	return MkDVS(g, id, DVtypeUint, uint16(LenUint), dbig)
+	return MkDES(g, id, DEtypeUint, uint16(LenUint), dbig)
 }
 
-// Make DV set packet: 1-byte bitmap
-func MkDvSetBmap1(g DVGroup, id uint8, data uint8) []uint8 {
-	return MkDVS(g, id, DVtypeBmap1, uint16(LenBmap1), []uint8{data})
+// Make DE set packet: 1-byte bitmap
+func MkDeSetBmap1(g DEGroup, id byte, data byte) []byte {
+	return MkDES(g, id, DEtypeBmap1, uint16(LenBmap1), []byte{data})
 }
 
-// Make DV set packet: 2-byte bitmap
-func MkDvSetBmap2(g DVGroup, id uint8, data uint16) []uint8 {
-	dbig := []uint8{}
+// Make DE set packet: 2-byte bitmap
+func MkDeSetBmap2(g DEGroup, id byte, data uint16) []byte {
+	dbig := []byte{}
 	dbig = binary.BigEndian.AppendUint16(dbig, data)
-	return MkDVS(g, id, DVtypeBmap2, uint16(LenBmap2), dbig)
+	return MkDES(g, id, DEtypeBmap2, uint16(LenBmap2), dbig)
 }
 
-// Make DV set packet: 4-byte bitmap
-func MkDvSetBmap4(g DVGroup, id uint8, data uint32) []uint8 {
-	dbig := []uint8{}
+// Make DE set packet: 4-byte bitmap
+func MkDeSetBmap4(g DEGroup, id byte, data uint32) []byte {
+	dbig := []byte{}
 	dbig = binary.BigEndian.AppendUint32(dbig, data)
-	return MkDVS(g, id, DVtypeBmap4, uint16(LenBmap4), dbig)
+	return MkDES(g, id, DEtypeBmap4, uint16(LenBmap4), dbig)
 }
 
-// Make DV report packet
-func MkDVR(g DVGroup, id uint8, t DVtype, dlen uint16, data []uint8) []uint8 {
-	p := Create(CmdDVReport)
-	dlen = EnforceDVlen(t, dlen)
-	p.AppendDVPkt(g, id, t, dlen, data)
+// Make DE report packet
+func MkDER(g DEGroup, id byte, t DEtype, dlen uint16, data []byte) []byte {
+	p := Create(CmdDEReport)
+	dlen = EnforceDElen(t, dlen)
+	p.AppendDEPkt(g, id, t, dlen, data)
 	return p.Build().Buf
 }
 
-// Make DV report packet: Raw
-func MkDvRepRaw(g DVGroup, id uint8, data []uint8) []uint8 {
-	return MkDVR(g, id, DVtypeRaw, uint16(len(data)), data)
+// Make DE report packet: Raw
+func MkDeRepRaw(g DEGroup, id byte, data []byte) []byte {
+	return MkDER(g, id, DEtypeRaw, uint16(len(data)), data)
 }
 
-// Make DV report packet: String
-func MkDvRepStr(g DVGroup, id uint8, data string) []uint8 {
-	return MkDVR(g, id, DVtypeString, uint16(len(data)), []uint8(data))
+// Make DE report packet: String
+func MkDeRepStr(g DEGroup, id byte, data string) []byte {
+	return MkDER(g, id, DEtypeString, uint16(len(data)), []byte(data))
 }
 
-// Make DV report packet: Boolean
-func MkDvRepBool(g DVGroup, id uint8, data uint8) []uint8 {
+// Make DE report packet: Boolean
+func MkDeRepBool(g DEGroup, id byte, data byte) []byte {
 	d := data
 	if d > 1 {
 		d = 1
 	}
-	return MkDVR(g, id, DVtypeBool, uint16(LenBool), []uint8{d})
+	return MkDER(g, id, DEtypeBool, uint16(LenBool), []byte{d})
 }
 
-// Make DV report packet: Enumeration
-func MkDvRepEnum(g DVGroup, id uint8, data uint8) []uint8 {
-	return MkDVR(g, id, DVtypeEnum, uint16(LenEnum), []uint8{data})
+// Make DE report packet: Enumeration
+func MkDeRepEnum(g DEGroup, id byte, data byte) []byte {
+	return MkDER(g, id, DEtypeEnum, uint16(LenEnum), []byte{data})
 }
 
-// Make DV report packet: Uint/value
-func MkDvRepUint(g DVGroup, id uint8, data uint32) []uint8 {
-	dbig := []uint8{}
+// Make DE report packet: Uint/value
+func MkDeRepUint(g DEGroup, id byte, data uint32) []byte {
+	dbig := []byte{}
 	dbig = binary.BigEndian.AppendUint32(dbig, data)
-	return MkDVR(g, id, DVtypeUint, uint16(LenUint), dbig)
+	return MkDER(g, id, DEtypeUint, uint16(LenUint), dbig)
 }
 
-// Make DV report packet: 1-Byte bitmap
-func MkDvRepBmap1(g DVGroup, id uint8, data uint8) []uint8 {
-	return MkDVR(g, id, DVtypeBmap1, uint16(LenBmap1), []uint8{data})
+// Make DE report packet: 1-Byte bitmap
+func MkDeRepBmap1(g DEGroup, id byte, data byte) []byte {
+	return MkDER(g, id, DEtypeBmap1, uint16(LenBmap1), []byte{data})
 }
 
-// Make DV report packet: 2-Byte bitmap
-func MkDvRepBmap2(g DVGroup, id uint8, data uint16) []uint8 {
-	dbig := []uint8{}
+// Make DE report packet: 2-Byte bitmap
+func MkDeRepBmap2(g DEGroup, id byte, data uint16) []byte {
+	dbig := []byte{}
 	dbig = binary.BigEndian.AppendUint16(dbig, data)
-	return MkDVR(g, id, DVtypeBmap2, uint16(LenBmap2), dbig)
+	return MkDER(g, id, DEtypeBmap2, uint16(LenBmap2), dbig)
 }
 
-// Make DV report packet: 4-Byte bitmap
-func MkDvRepBmap4(g DVGroup, id uint8, data uint32) []uint8 {
-	dbig := []uint8{}
+// Make DE report packet: 4-Byte bitmap
+func MkDeRepBmap4(g DEGroup, id byte, data uint32) []byte {
+	dbig := []byte{}
 	dbig = binary.BigEndian.AppendUint32(dbig, data)
-	return MkDVR(g, id, DVtypeBmap4, uint16(LenBmap4), dbig)
+	return MkDER(g, id, DEtypeBmap4, uint16(LenBmap4), dbig)
 }
 
-// Make DV fault report request packet 
-func MkDvFaultAllReq() []uint8 {
-	p := Create(CmdDVFault)
+// Make DE fault report request packet 
+func MkDeFaultAllReq() []byte {
+	p := Create(CmdDEFault)
 	return p.Build().Buf
 }
 
-// Make DV fault report packet: No fault on all DV 
-func MkDvNoFaultAll() []uint8 {
-	p := Create(CmdDVFault)
+// Make DE fault report packet: No fault on all DE 
+func MkDeNoFaultAll() []byte {
+	p := Create(CmdDEFault)
 	p.AppendOne(0)
 	return p.Build().Buf
 }
 
-// Make DV fault report packet
-func MkDvFaultRep(g DVGroup, id uint8, f DVfault) []uint8 {
-	p := Create(CmdDVFault)
-	p.AppendOne(uint8(g))
+// Make DE fault report packet
+func MkDeFaultRep(g DEGroup, id byte, f DEF) []byte {
+	p := Create(CmdDEFault)
+	p.AppendOne(byte(g))
 	p.AppendOne(id)
 	p.AppendOne(f)
 	return p.Build().Buf
 }
 
 // Make schedule clear request packet
-func MkSchEraseAllReq() []uint8 {
+func MkSchEraseAllReq() []byte {
 	p := Create(CmdSchedule)
 	return p.Build().Buf
 }
 
 // Make schedule execution report packet
-func MkSchExecReport(schId uint8) []uint8 {
+func MkSchExecReport(schId byte) []byte {
 	p := Create(CmdSchedule)
 	p.AppendOne(schId)
 	return p.Build().Buf
 }
 
 // Make schedule set packet
-func MkSchSet(schList []SchPkt) []uint8 {
+func MkSchSet(schList []SchPkt) []byte {
 	p := Create(CmdSchedule)
-	p.AppendOne(uint8(len(schList)))
+	p.AppendOne(byte(len(schList)))
 	for _, sch := range schList {
 		p.AppendOne(sch.Id)
 		p.AppendOne(sch.Weekdays)
 		p.AppendOne(sch.Hour)
 		p.AppendOne(sch.Minute)
-		dvp := sch.Dvp
-		if (sch.Dvp.Dtype != DVtypeRaw && sch.Dvp.Dtype != DVtypeString) {
-			p.AppendDVPktFixed(dvp.Group, dvp.Id, dvp.Dtype, dvp.Dlen, dvp.Data)
+		dep := sch.Dep
+		if (sch.Dep.Dtype != DEtypeRaw && sch.Dep.Dtype != DEtypeString) {
+			p.AppendDEPktFixed(dep.Group, dep.Id, dep.Dtype, dep.Dlen, dep.Data)
 		} else {
-			p.AppendDVPkt(dvp.Group, dvp.Id, dvp.Dtype, dvp.Dlen, dvp.DataRaw)
+			p.AppendDEPkt(dep.Group, dep.Id, dep.Dtype, dep.Dlen, dep.DataRaw)
 		}
 	}
 	return p.Build().Buf
 }
 
 // Parse buffer into base packet
-func Parse(buf []uint8) (BasePkt, error) {
+func Parse(buf []byte) (BasePkt, error) {
 	if (len(buf) < int(PktMinLen)) {
 		return BasePkt{}, fmt.Errorf("Base: Buffer is too short")
 	}
@@ -465,8 +483,8 @@ func Parse(buf []uint8) (BasePkt, error) {
 	return pkt, nil
 }
 
-// Get numeric data from DV packet with fixed-length data type
-func DvpFixedData(p DvPkt) uint32 {
+// Get numeric data from DE packet with fixed-length data type
+func DepFixedData(p DePkt) uint32 {
 	if p.Dlen == 1 {
 		return uint32(p.DataRaw[0])
 	} else if p.Dlen == 2 {
@@ -484,38 +502,38 @@ func DvpFixedData(p DvPkt) uint32 {
 	}
 }
 
-// Parse buffer into DV packet
-func ParseDVP(buf []uint8) DvPkt {
-	dvp := DvPkt{}
-	dvp.Group = DVGroup(buf[IdxDVPGroup])
-	dvp.Id = buf[IdxDVPID]
-	dvp.Dtype = DVtype(buf[IdxDVPtype])
-	dlenSlice := buf[IdxDVPdlen:IdxDVPdlen+IdxDVPkt(DlenLen)]
+// Parse buffer into DE packet
+func ParseDEP(buf []byte) DePkt {
+	dep := DePkt{}
+	dep.Group = DEGroup(buf[IdxDEPGroup])
+	dep.Id = buf[IdxDEPID]
+	dep.Dtype = DEtype(buf[IdxDEPtype])
+	dlenSlice := buf[IdxDEPdlen:IdxDEPdlen+IdxDEPkt(DlenLen)]
 	r := bytes.NewReader(dlenSlice)
-	binary.Read(r, binary.BigEndian, &dvp.Dlen)
-	dataSlice := buf[IdxDVPdata:IdxDVPdata+IdxDVPkt(dvp.Dlen)]
-	dvp.DataRaw = append(dvp.DataRaw, dataSlice...)
-	dvp.Buf = buf[:uint16(DVPktMinLen)+dvp.Dlen]
+	binary.Read(r, binary.BigEndian, &dep.Dlen)
+	dataSlice := buf[IdxDEPdata:IdxDEPdata+IdxDEPkt(dep.Dlen)]
+	dep.DataRaw = append(dep.DataRaw, dataSlice...)
+	dep.Buf = buf[:uint16(DEPktMinLen)+dep.Dlen]
 
-	if (dvp.Dtype != DVtypeRaw && dvp.Dtype != DVtypeString) {
-		dvp.Data = DvpFixedData(dvp)
+	if (dep.Dtype != DEtypeRaw && dep.Dtype != DEtypeString) {
+		dep.Data = DepFixedData(dep)
 	} else { 
-		dvp.Data = 0 
+		dep.Data = 0 
 	}
-	return dvp
+	return dep
 }
 
-// Get DV packet from base packet
-// Can only be used when base packet data contains only and exclusively one DV packet
-func (p BasePkt)GetDVP() (DvPkt, error) {
-	dvp := DvPkt{}
-	if (len(p.Data) < int(DVPktMinLen)) {
-		return dvp, fmt.Errorf("DVP: Buffer is too short")
+// Get DE packet from base packet
+// Can only be used when base packet data contains only and exclusively one DE packet
+func (p BasePkt)GetDEP() (DePkt, error) {
+	dep := DePkt{}
+	if (len(p.Data) < int(DEPktMinLen)) {
+		return dep, fmt.Errorf("DEP: Buffer is too short")
 	}
-	if (p.CommandID != CmdDVSet && p.CommandID != CmdDVReport) {
-		return dvp, fmt.Errorf("DVP: Wrong command ID")
+	if (p.CommandID != CmdDESet && p.CommandID != CmdDEReport) {
+		return dep, fmt.Errorf("DEP: Wrong command ID")
 	}
-	return ParseDVP(p.Data), nil
+	return ParseDEP(p.Data), nil
 }
 
 // Get schedule list from base packet
@@ -532,8 +550,8 @@ func (p BasePkt)GetSchList() ([]SchPkt, error) {
 		schList[i].Weekdays = p.Data[pIdx+int(IdxSchpWday)]
 		schList[i].Hour = p.Data[pIdx+int(IdxSchpHour)]
 		schList[i].Minute = p.Data[pIdx+int(IdxSchpMinute)]
-		schList[i].Dvp = ParseDVP(p.Data[pIdx+int(IdxSchpDvp):])
-		pIdx += int(SchHeadLen)+int(DVPktMinLen)+int(schList[i].Dvp.Dlen)
+		schList[i].Dep = ParseDEP(p.Data[pIdx+int(IdxSchpDep):])
+		pIdx += int(SchHeadLen)+int(DEPktMinLen)+int(schList[i].Dep.Dlen)
 		if (pIdx > int(p.DataLen)+1) {
 			return []SchPkt{}, fmt.Errorf("More schedules expected")
 		}
