@@ -1,8 +1,8 @@
 package pg
 
 import (
-	"testing"
 	"math"
+	"testing"
 )
 
 func TestPgMk(t *testing.T) {
@@ -98,6 +98,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err := p.GetDEP()
 	t.Logf("dep5-1: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeSetRaw(DegInfo, 1, []uint8(d))
 	t.Logf("5-2: %x", buf)
@@ -109,6 +112,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep5-2: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeSetStr(DegSensor, 0, d)
 	t.Logf("5-3: %x", buf)
@@ -120,6 +126,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep5-3: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeSetBool(DegControl, 255, 100 /* Intentional */)
 	t.Logf("5-4: %x", buf)
@@ -131,6 +140,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep5-4: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeSetEnum(DegInfo, 254, 100)
 	t.Logf("5-5: %x", buf)
@@ -142,6 +154,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep5-5: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeSetUint(DegControl, 253, math.MaxUint32-1)
 	t.Logf("5-6: %x", buf)
@@ -153,6 +168,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep5-6: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeSetBmap1(DegSensor, 252, math.MaxUint8-2)
 	t.Logf("5-7: %x", buf)
@@ -164,6 +182,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep5-7: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeSetBmap2(DegSensor, 251, math.MaxUint16-3)
 	t.Logf("5-8: %x", buf)
@@ -175,6 +196,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep5-8: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeSetBmap4(DegSensor, 250, math.MaxUint32-4)
 	t.Logf("5-9: %x", buf)
@@ -186,6 +210,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep5-9: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDER(DegControl, 2, DEtypeRaw, uint16(len(d)), []uint8(d))
 	t.Logf("6-1: %x", buf)
@@ -197,6 +224,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep6-1: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeRepRaw(DegInfo, 1, []uint8(d))
 	t.Logf("6-2: %x", buf)
@@ -208,6 +238,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep6-2: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeRepStr(DegSensor, 0, d)
 	t.Logf("6-3: %x", buf)
@@ -219,6 +252,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep6-3: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeRepBool(DegControl, 255, 100 /* Intentional */)
 	t.Logf("6-4: %x", buf)
@@ -230,6 +266,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep6-4: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeRepEnum(DegInfo, 254, 100)
 	t.Logf("6-5: %x", buf)
@@ -241,6 +280,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep6-5: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeRepUint(DegControl, 253, math.MaxUint32-1)
 	t.Logf("6-6: %x", buf)
@@ -252,6 +294,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep6-6: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeRepBmap1(DegSensor, 252, math.MaxUint8-2)
 	t.Logf("6-7: %x", buf)
@@ -263,6 +308,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep6-7: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeRepBmap2(DegInfo, 251, math.MaxUint16-3)
 	t.Logf("6-8: %x", buf)
@@ -274,6 +322,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep6-8: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeRepBmap4(DegControl, 250, math.MaxUint32-4)
 	t.Logf("6-9: %x", buf)
@@ -285,6 +336,9 @@ func TestPgMk(t *testing.T) {
 
 	dep, err = p.GetDEP()
 	t.Logf("dep6-9: %s", dep)
+	if err != nil {
+		t.Error(err)
+	}
 
 	buf = MkDeFaultAllReq()
 	t.Logf("7-1: %x", buf)
@@ -344,7 +398,7 @@ func TestPgMk(t *testing.T) {
 	sch[1].Dep.Group = DegControl
 	sch[1].Dep.Id = 254
 	sch[1].Dep.Dtype = DEtypeUint
-	sch[1].Dep.Data = math.MaxUint32-1
+	sch[1].Dep.Data = math.MaxUint32 - 1
 
 	buf = MkSchSet(sch)
 	t.Logf("8-3: %x", buf)

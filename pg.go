@@ -2,48 +2,48 @@
 package pg
 
 import (
-	"fmt"
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"time"
 )
 
 // Unbuilt pg packet
 type BuildPkt struct {
-	Ver byte
+	Ver       byte
 	CommandID CmdID
-	DataLen uint16
-	Data []byte
+	DataLen   uint16
+	Data      []byte
 }
 
 // Base pg packet
 type BasePkt struct {
-	Ver byte
+	Ver       byte
 	CommandID CmdID
-	DataLen uint16
-	Data []byte
-	Buf []byte
-	Chksum byte
+	DataLen   uint16
+	Data      []byte
+	Buf       []byte
+	Chksum    byte
 }
 
 // DE packet
 type DePkt struct {
-	Group DEGroup
-	Id byte
-	Dtype DEtype
-	Dlen uint16
+	Group   DEGroup
+	Id      byte
+	Dtype   DEtype
+	Dlen    uint16
 	DataRaw []byte
-	Data uint32
-	Buf []byte
+	Data    uint32
+	Buf     []byte
 }
 
 // Schedule packet
 type SchPkt struct {
-	Id byte
+	Id       byte
 	Weekdays byte
-	Hour byte
-	Minute byte
-	Dep DePkt
+	Hour     byte
+	Minute   byte
+	Dep      DePkt
 }
 
 var PgVer byte = 0 // Active pg version
@@ -68,7 +68,7 @@ func ChksumVerify(buf []byte, chksum byte) error {
 	if chksum == expected {
 		return nil
 	} else {
-		return fmt.Errorf("Got 0x%x but expected 0x%x", chksum, expected)
+		return fmt.Errorf("CHKSUM got 0x%x but expected 0x%x", chksum, expected)
 	}
 }
 
@@ -78,19 +78,19 @@ func Create(cid CmdID) BuildPkt {
 }
 
 // Append one byte to unbuilt packet
-func (pkt *BuildPkt)AppendOne(data byte) {
+func (pkt *BuildPkt) AppendOne(data byte) {
 	pkt.DataLen += 1
 	pkt.Data = append(pkt.Data, data)
 }
 
 // Append multiple bytes to unbuilt packet
-func (pkt *BuildPkt)Append(data []byte) {
+func (pkt *BuildPkt) Append(data []byte) {
 	pkt.DataLen += uint16(len(data))
 	pkt.Data = append(pkt.Data, data...)
 }
 
 // Build DE packet from parameters then append it to unbuilt packet
-func (pkt *BuildPkt)AppendDEPkt(g DEGroup, id byte, t DEtype, dlen uint16, data []byte) {
+func (pkt *BuildPkt) AppendDEPkt(g DEGroup, id byte, t DEtype, dlen uint16, data []byte) {
 	pkt.AppendOne(byte(g))
 	pkt.AppendOne(id)
 	pkt.AppendOne(byte(t))
@@ -101,7 +101,7 @@ func (pkt *BuildPkt)AppendDEPkt(g DEGroup, id byte, t DEtype, dlen uint16, data 
 }
 
 // Build DE packet with fixed data length from parameters then append it to unbuilt packet
-func (pkt *BuildPkt)AppendDEPktFixed(g DEGroup, id byte, t DEtype, dlen uint16, data uint32) {
+func (pkt *BuildPkt) AppendDEPktFixed(g DEGroup, id byte, t DEtype, dlen uint16, data uint32) {
 	dlen = EnforceDElen(t, dlen)
 	pkt.AppendOne(byte(g))
 	pkt.AppendOne(id)
@@ -123,7 +123,7 @@ func (pkt *BuildPkt)AppendDEPktFixed(g DEGroup, id byte, t DEtype, dlen uint16, 
 }
 
 // Transform unbuilt packet into base packet
-func (p BuildPkt)Build() BasePkt {
+func (p BuildPkt) Build() BasePkt {
 	Pkt := BasePkt{Ver: p.Ver, CommandID: p.CommandID, DataLen: p.DataLen, Data: p.Data}
 	Pkt.Buf = []byte{Head1, Head2, Pkt.Ver, Pkt.CommandID}
 	Pkt.Buf = binary.BigEndian.AppendUint16(Pkt.Buf, Pkt.DataLen)
@@ -133,49 +133,62 @@ func (p BuildPkt)Build() BasePkt {
 	return Pkt
 }
 
-func (p BasePkt)String() string {
+func (p BasePkt) String() string {
 	return fmt.Sprintf("ver: %d cmd: %d dlen: %d, data:[0x%x] cs: 0x%x",
-	p.Ver, p.CommandID, p.DataLen, p.Data, p.Chksum)
+		p.Ver, p.CommandID, p.DataLen, p.Data, p.Chksum)
 }
 
-func (g DEGroup)String() string {
+func (g DEGroup) String() string {
 	switch g {
-	case DegInfo: return "Info"
-	case DegSensor: return "Sensor"
-	case DegControl: return "Control"
-	default: return "Invalid"
+	case DegInfo:
+		return "Info"
+	case DegSensor:
+		return "Sensor"
+	case DegControl:
+		return "Control"
+	default:
+		return "Invalid"
 	}
 }
 
-func (t DEtype)String() string {
+func (t DEtype) String() string {
 	switch t {
-	case DEtypeRaw: return "Raw"
-	case DEtypeString: return "String"
-	case DEtypeBool: return "Bool"
-	case DEtypeEnum: return "Enum"
-	case DEtypeUint: return "Uint"
-	case DEtypeBmap1: return "Bmap1"
-	case DEtypeBmap2: return "Bmap2"
-	case DEtypeBmap4: return "Bmap4"
-	default: return "Invalid"
+	case DEtypeRaw:
+		return "Raw"
+	case DEtypeString:
+		return "String"
+	case DEtypeBool:
+		return "Bool"
+	case DEtypeEnum:
+		return "Enum"
+	case DEtypeUint:
+		return "Uint"
+	case DEtypeBmap1:
+		return "Bmap1"
+	case DEtypeBmap2:
+		return "Bmap2"
+	case DEtypeBmap4:
+		return "Bmap4"
+	default:
+		return "Invalid"
 	}
 }
 
-func (p DePkt)String() string {
-	switch (p.Dtype) {
+func (p DePkt) String() string {
+	switch p.Dtype {
 	case DEtypeRaw:
 		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x]",
-		p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw)
+			p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw)
 	case DEtypeString:
 		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x] data: %s",
-		p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw, p.DataRaw)
+			p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw, p.DataRaw)
 	default:
 		return fmt.Sprintf("group: %s id: %d dtype: %s dlen: %d dataRaw:[0x%x] data: %d",
-		p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw, p.Data)
+			p.Group, p.Id, p.Dtype, p.Dlen, p.DataRaw, p.Data)
 	}
 }
 
-func (p SchPkt)String() string {
+func (p SchPkt) String() string {
 	return fmt.Sprintf("id: %d wdays: %08b hour: %d minute: %d dep:[%s]", p.Id, p.Weekdays, p.Hour, p.Minute, p.Dep)
 }
 
@@ -256,7 +269,7 @@ func MkTsyncReq(rb TimesyncRB) []byte {
 func MkTsyncResp(rb TimesyncRB, tm time.Time) []byte {
 	p := Create(CmdTimeSync)
 	p.AppendOne(rb)
-	p.AppendOne(byte(tm.Year()-100))
+	p.AppendOne(byte(tm.Year() - 100))
 	p.AppendOne(byte(tm.Month()))
 	p.AppendOne(byte(tm.Day()))
 	p.AppendOne(byte(tm.Weekday()))
@@ -275,13 +288,20 @@ func MkDeResetAllReq() []byte {
 // Enforce DE data length for DE data types with fixed length
 func EnforceDElen(t DEtype, dlen uint16) uint16 {
 	switch t {
-	case DEtypeBool: return uint16(LenBool)
-	case DEtypeEnum: return uint16(LenEnum)
-	case DEtypeUint: return uint16(LenUint)
-	case DEtypeBmap1: return uint16(LenBmap1)
-	case DEtypeBmap2: return uint16(LenBmap2)
-	case DEtypeBmap4: return uint16(LenBmap4)
-	default: return dlen 
+	case DEtypeBool:
+		return uint16(LenBool)
+	case DEtypeEnum:
+		return uint16(LenEnum)
+	case DEtypeUint:
+		return uint16(LenUint)
+	case DEtypeBmap1:
+		return uint16(LenBmap1)
+	case DEtypeBmap2:
+		return uint16(LenBmap2)
+	case DEtypeBmap4:
+		return uint16(LenBmap4)
+	default:
+		return dlen
 	}
 }
 
@@ -292,7 +312,6 @@ func MkDES(g DEGroup, id byte, t DEtype, dlen uint16, data []byte) []byte {
 	p.AppendDEPkt(g, id, t, dlen, data)
 	return p.Build().Buf
 }
-
 
 // Make DE set packet: Raw
 func MkDeSetRaw(g DEGroup, id byte, data []byte) []byte {
@@ -402,13 +421,13 @@ func MkDeRepBmap4(g DEGroup, id byte, data uint32) []byte {
 	return MkDER(g, id, DEtypeBmap4, uint16(LenBmap4), dbig)
 }
 
-// Make DE fault report request packet 
+// Make DE fault report request packet
 func MkDeFaultAllReq() []byte {
 	p := Create(CmdDEFault)
 	return p.Build().Buf
 }
 
-// Make DE fault report packet: No fault on all DE 
+// Make DE fault report packet: No fault on all DE
 func MkDeNoFaultAll() []byte {
 	p := Create(CmdDEFault)
 	p.AppendOne(0)
@@ -447,7 +466,7 @@ func MkSchSet(schList []SchPkt) []byte {
 		p.AppendOne(sch.Hour)
 		p.AppendOne(sch.Minute)
 		dep := sch.Dep
-		if (sch.Dep.Dtype != DEtypeRaw && sch.Dep.Dtype != DEtypeString) {
+		if sch.Dep.Dtype != DEtypeRaw && sch.Dep.Dtype != DEtypeString {
 			p.AppendDEPktFixed(dep.Group, dep.Id, dep.Dtype, dep.Dlen, dep.Data)
 		} else {
 			p.AppendDEPkt(dep.Group, dep.Id, dep.Dtype, dep.Dlen, dep.DataRaw)
@@ -458,25 +477,28 @@ func MkSchSet(schList []SchPkt) []byte {
 
 // Parse buffer into base packet
 func Parse(buf []byte) (BasePkt, error) {
-	if (len(buf) < int(PktMinLen)) {
-		return BasePkt{}, fmt.Errorf("Base: Buffer is too short")
+	if len(buf) < int(PktMinLen) {
+		return BasePkt{}, fmt.Errorf("PG buffer is too short")
 	}
-	if (buf[IdxHead1] != Head1) {
-		return BasePkt{}, fmt.Errorf("Header 1 is wrong")
-	} 
-	if (buf[IdxHead2] != Head2) {
-		return BasePkt{}, fmt.Errorf("Header 2 is wrong")
+	if buf[IdxHead1] != Head1 {
+		return BasePkt{}, fmt.Errorf("PG header 1 is wrong")
+	}
+	if buf[IdxHead2] != Head2 {
+		return BasePkt{}, fmt.Errorf("PG header 2 is wrong")
 	}
 	err := ChksumVerify(buf[:len(buf)-1], buf[len(buf)-1])
-	if (err != nil) {
+	if err != nil {
 		return BasePkt{}, err
 	}
 
 	pkt := BasePkt{Ver: buf[IdxVer], CommandID: CmdID(buf[IdxCmd])}
-	dlenSlice := buf[IdxDlen:IdxDlen+IdxBasePkt(DlenLen)]
+	dlenSlice := buf[IdxDlen : IdxDlen+DlenLen]
 	r := bytes.NewReader(dlenSlice)
 	binary.Read(r, binary.BigEndian, &pkt.DataLen)
-	pkt.Data = buf[IdxData:IdxData+IdxBasePkt(pkt.DataLen)]
+	if len(buf) != int(PktMinLen)+int(pkt.DataLen) {
+		return BasePkt{}, fmt.Errorf("PG packet data length mismatch")
+	}
+	pkt.Data = buf[IdxData : uint16(IdxData)+pkt.DataLen]
 	pkt.Buf = append(pkt.Buf, buf...)
 	pkt.Chksum = buf[len(buf)-1]
 
@@ -503,43 +525,47 @@ func DepFixedData(p DePkt) uint32 {
 }
 
 // Parse buffer into DE packet
-func ParseDEP(buf []byte) DePkt {
+func ParseDEP(buf []byte) (DePkt, error) {
+	if len(buf) < int(DEPktMinLen) {
+		return DePkt{}, fmt.Errorf("DEP buffer is too short")
+	}
 	dep := DePkt{}
 	dep.Group = DEGroup(buf[IdxDEPGroup])
 	dep.Id = buf[IdxDEPID]
 	dep.Dtype = DEtype(buf[IdxDEPtype])
-	dlenSlice := buf[IdxDEPdlen:IdxDEPdlen+IdxDEPkt(DlenLen)]
+	dlenSlice := buf[IdxDEPdlen : IdxDEPdlen+IdxDEPkt(DlenLen)]
 	r := bytes.NewReader(dlenSlice)
 	binary.Read(r, binary.BigEndian, &dep.Dlen)
-	dataSlice := buf[IdxDEPdata:IdxDEPdata+IdxDEPkt(dep.Dlen)]
+	if len(buf) < int(DEPktMinLen)+int(dep.Dlen) {
+		return DePkt{}, fmt.Errorf("DEP buffer is shorter than indicated by data length")
+	}
+	dataSlice := buf[IdxDEPdata : IdxDEPdata+IdxDEPkt(dep.Dlen)]
 	dep.DataRaw = append(dep.DataRaw, dataSlice...)
 	dep.Buf = buf[:uint16(DEPktMinLen)+dep.Dlen]
 
-	if (dep.Dtype != DEtypeRaw && dep.Dtype != DEtypeString) {
+	if dep.Dtype != DEtypeRaw && dep.Dtype != DEtypeString {
 		dep.Data = DepFixedData(dep)
-	} else { 
-		dep.Data = 0 
+	} else {
+		dep.Data = 0
 	}
-	return dep
+	return dep, nil
 }
 
 // Get DE packet from base packet
 // Can only be used when base packet data contains only and exclusively one DE packet
-func (p BasePkt)GetDEP() (DePkt, error) {
+func (p BasePkt) GetDEP() (DePkt, error) {
 	dep := DePkt{}
-	if (len(p.Data) < int(DEPktMinLen)) {
-		return dep, fmt.Errorf("DEP: Buffer is too short")
+	if p.CommandID != CmdDESet && p.CommandID != CmdDEReport {
+		return dep, fmt.Errorf("DEP Wrong command ID")
 	}
-	if (p.CommandID != CmdDESet && p.CommandID != CmdDEReport) {
-		return dep, fmt.Errorf("DEP: Wrong command ID")
-	}
-	return ParseDEP(p.Data), nil
+	return ParseDEP(p.Data)
 }
 
 // Get schedule list from base packet
-func (p BasePkt)GetSchList() ([]SchPkt, error) {
-	if (p.CommandID != CmdSchedule) {
-		return []SchPkt{}, fmt.Errorf("SCH: Wrong command ID")
+func (p BasePkt) GetSchList() ([]SchPkt, error) {
+	var err error = nil
+	if p.CommandID != CmdSchedule {
+		return []SchPkt{}, fmt.Errorf("SCH Wrong command ID")
 	}
 
 	schNum := p.Data[0]
@@ -550,10 +576,13 @@ func (p BasePkt)GetSchList() ([]SchPkt, error) {
 		schList[i].Weekdays = p.Data[pIdx+int(IdxSchpWday)]
 		schList[i].Hour = p.Data[pIdx+int(IdxSchpHour)]
 		schList[i].Minute = p.Data[pIdx+int(IdxSchpMinute)]
-		schList[i].Dep = ParseDEP(p.Data[pIdx+int(IdxSchpDep):])
-		pIdx += int(SchHeadLen)+int(DEPktMinLen)+int(schList[i].Dep.Dlen)
-		if (pIdx > int(p.DataLen)+1) {
-			return []SchPkt{}, fmt.Errorf("More schedules expected")
+		schList[i].Dep, err = ParseDEP(p.Data[pIdx+int(IdxSchpDep):])
+		if err != nil {
+			return []SchPkt{}, fmt.Errorf("%s on schedule with id %d", err.Error(), schList[i].Id)
+		}
+		pIdx += int(SchHeadLen) + int(DEPktMinLen) + int(schList[i].Dep.Dlen)
+		if pIdx > int(p.DataLen)+1 {
+			return []SchPkt{}, fmt.Errorf("SCH more schedules expected")
 		}
 	}
 
