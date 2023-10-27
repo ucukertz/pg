@@ -570,15 +570,16 @@ func (p BasePkt) GetSchList() ([]SchPkt, error) {
 	schList := make([]SchPkt, schNum)
 	pIdx := 1
 	for i := range schList {
-		schList[i].Id = p.Data[pIdx+int(IdxSchpID)]
-		schList[i].Weekdays = p.Data[pIdx+int(IdxSchpWday)]
-		schList[i].Hour = p.Data[pIdx+int(IdxSchpHour)]
-		schList[i].Minute = p.Data[pIdx+int(IdxSchpMinute)]
-		schList[i].Dep, err = ParseDEP(p.Data[pIdx+int(IdxSchpDep):])
+		sch := &schList[i]
+		sch.Id = p.Data[pIdx+int(IdxSchpID)]
+		sch.Weekdays = p.Data[pIdx+int(IdxSchpWday)]
+		sch.Hour = p.Data[pIdx+int(IdxSchpHour)]
+		sch.Minute = p.Data[pIdx+int(IdxSchpMinute)]
+		sch.Dep, err = ParseDEP(p.Data[pIdx+int(IdxSchpDep):])
 		if err != nil {
-			return []SchPkt{}, fmt.Errorf("%s on schedule with id %d", err.Error(), schList[i].Id)
+			return []SchPkt{}, fmt.Errorf("%s on schedule with id %d", err.Error(), sch.Id)
 		}
-		pIdx += int(SchHeadLen) + int(DEPktMinLen) + int(schList[i].Dep.Dlen)
+		pIdx += int(SchHeadLen) + int(DEPktMinLen) + int(sch.Dep.Dlen)
 		if pIdx > int(p.DataLen)+1 {
 			return []SchPkt{}, fmt.Errorf("SCH more schedules expected")
 		}
