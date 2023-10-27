@@ -74,7 +74,7 @@ func ChksumVerify(buf []byte, chksum byte) error {
 
 // Create unbuilt packet with cid as Command ID
 func Create(cid CmdID) BuildPkt {
-	return BuildPkt{Ver: PgVer, CommandID: cid, DataLen: 0, Data: []byte{}}
+	return BuildPkt{Ver: PgVer, CommandID: cid, DataLen: 0, Data: make([]byte, 0, 32)}
 }
 
 // Append one byte to unbuilt packet
@@ -89,26 +89,23 @@ func (pkt *BuildPkt) Append(data []byte) {
 	pkt.Data = append(pkt.Data, data...)
 }
 
+func (pkt *BuildPkt) AppendDlen16(dlen uint16) {
+	pkt.Data = binary.BigEndian.AppendUint16(pkt.Data, dlen)
+	pkt.DataLen += 2
+}
+
 // Build DE packet from parameters then append it to unbuilt packet
 func (pkt *BuildPkt) AppendDEPkt(g DEGroup, id byte, t DEtype, dlen uint16, data []byte) {
-	pkt.AppendOne(byte(g))
-	pkt.AppendOne(id)
-	pkt.AppendOne(byte(t))
-	dlenBig := []byte{}
-	dlenBig = binary.BigEndian.AppendUint16(dlenBig, dlen)
-	pkt.Append(dlenBig)
+	pkt.Append([]byte{byte(g), id, byte(t)})
+	pkt.AppendDlen16(dlen)
 	pkt.Append(data[:dlen])
 }
 
 // Build DE packet with fixed data length from parameters then append it to unbuilt packet
 func (pkt *BuildPkt) AppendDEPktFixed(g DEGroup, id byte, t DEtype, dlen uint16, data uint32) {
 	dlen = EnforceDElen(t, dlen)
-	pkt.AppendOne(byte(g))
-	pkt.AppendOne(id)
-	pkt.AppendOne(byte(t))
-	dlenBig := []byte{}
-	dlenBig = binary.BigEndian.AppendUint16(dlenBig, dlen)
-	pkt.Append(dlenBig)
+	pkt.Append([]byte{byte(g), id, byte(t)})
+	pkt.AppendDlen16(dlen)
 	if dlen == 1 {
 		pkt.AppendOne(byte(data))
 	} else if dlen == 2 {
@@ -125,11 +122,12 @@ func (pkt *BuildPkt) AppendDEPktFixed(g DEGroup, id byte, t DEtype, dlen uint16,
 // Transform unbuilt packet into base packet
 func (p BuildPkt) Build() BasePkt {
 	Pkt := BasePkt{Ver: p.Ver, CommandID: p.CommandID, DataLen: p.DataLen, Data: p.Data}
-	Pkt.Buf = []byte{Head1, Head2, Pkt.Ver, Pkt.CommandID}
-	Pkt.Buf = binary.BigEndian.AppendUint16(Pkt.Buf, Pkt.DataLen)
-	Pkt.Buf = append(Pkt.Buf, Pkt.Data...)
-	chksum := Chksum(Pkt.Buf)
-	Pkt.Buf = append(Pkt.Buf, chksum)
+	buf := make([]byte, 0, int(PktMinLen)+len(p.Data))
+	buf = append(buf, Head1, Head2, Pkt.Ver, Pkt.CommandID)
+	buf = binary.BigEndian.AppendUint16(buf, Pkt.DataLen)
+	buf = append(buf, Pkt.Data...)
+	buf = append(buf, Chksum(buf))
+	Pkt.Buf = buf
 	return Pkt
 }
 

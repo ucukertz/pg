@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"encoding/json"
 	"math"
 	"testing"
 )
@@ -414,4 +415,33 @@ func TestPgMk(t *testing.T) {
 	} else {
 		t.Logf("sch8-3: %s", pSch)
 	}
+}
+
+func BenchmarkPgDe(b *testing.B) {
+
+	b.Run("PG", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			MkDeSetStr(DegInfo, 1, "Benchmark")
+		}
+	})
+
+	b.Run("JSON", func(b *testing.B) {
+		var data struct {
+			Ver       byte    `json:"version"`
+			CommandID CmdID   `json:"cmd"`
+			Group     DEGroup `json:"group"`
+			Id        byte    `json:"DE ID"`
+			Dtype     DEtype  `json:"Dtype"`
+			Data      string  `json:"Data"`
+		}
+		data.Ver = 0
+		data.CommandID = CmdDESet
+		data.Group = DegInfo
+		data.Id = 1
+		data.Dtype = DEtypeString
+		data.Data = "Benchmark"
+		for i := 0; i < b.N; i++ {
+			json.Marshal(data)
+		}
+	})
 }
