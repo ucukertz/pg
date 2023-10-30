@@ -89,15 +89,23 @@ func (pkt *BuildPkt) Append(data []byte) {
 	pkt.Data = append(pkt.Data, data...)
 }
 
-func (pkt *BuildPkt) AppendDlen16(dlen uint16) {
-	pkt.Data = binary.BigEndian.AppendUint16(pkt.Data, dlen)
-	pkt.DataLen += 2
+// Convert u16 value to its big endlian slice representation
+func BendianSlice16(v uint16) []byte {
+	slice := [2]byte{byte(v >> 8), byte(v)}
+	return slice[:]
+}
+
+// Convert u32 value to its big endlian slice representation
+func BendianSlice32(v uint32) []byte {
+	slice := [4]byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
+	return slice[:]
 }
 
 // Build DE packet from parameters then append it to unbuilt packet
 func (pkt *BuildPkt) AppendDEPkt(g DEGroup, id byte, t DEtype, dlen uint16, data []byte) {
 	pkt.Append([]byte{byte(g), id, byte(t)})
-	pkt.AppendDlen16(dlen)
+	dlenBig := BendianSlice16(dlen)
+	pkt.Append(dlenBig)
 	pkt.Append(data[:dlen])
 }
 
@@ -105,16 +113,15 @@ func (pkt *BuildPkt) AppendDEPkt(g DEGroup, id byte, t DEtype, dlen uint16, data
 func (pkt *BuildPkt) AppendDEPktFixed(g DEGroup, id byte, t DEtype, dlen uint16, data uint32) {
 	dlen = EnforceDElen(t, dlen)
 	pkt.Append([]byte{byte(g), id, byte(t)})
-	pkt.AppendDlen16(dlen)
+	dlenBig := BendianSlice16(dlen)
+	pkt.Append(dlenBig)
 	if dlen == 1 {
 		pkt.AppendOne(byte(data))
 	} else if dlen == 2 {
-		dataBig := []byte{}
-		dataBig = binary.BigEndian.AppendUint16(dataBig, uint16(data))
+		dataBig := BendianSlice16(uint16(data))
 		pkt.Append(dataBig)
 	} else if dlen == 4 {
-		dataBig := []byte{}
-		dataBig = binary.BigEndian.AppendUint32(dataBig, data)
+		dataBig := BendianSlice32(uint32(data))
 		pkt.Append(dataBig)
 	}
 }
@@ -337,9 +344,8 @@ func MkDeSetEnum(g DEGroup, id byte, data byte) []byte {
 
 // Make DE set packet: Uint/value
 func MkDeSetUint(g DEGroup, id byte, data uint32) []byte {
-	dbig := []byte{}
-	dbig = binary.BigEndian.AppendUint32(dbig, data)
-	return MkDES(g, id, DEtypeUint, uint16(LenUint), dbig)
+	dataBig := BendianSlice32(data)
+	return MkDES(g, id, DEtypeUint, uint16(LenUint), dataBig)
 }
 
 // Make DE set packet: 1-byte bitmap
@@ -349,16 +355,14 @@ func MkDeSetBmap1(g DEGroup, id byte, data byte) []byte {
 
 // Make DE set packet: 2-byte bitmap
 func MkDeSetBmap2(g DEGroup, id byte, data uint16) []byte {
-	dbig := []byte{}
-	dbig = binary.BigEndian.AppendUint16(dbig, data)
-	return MkDES(g, id, DEtypeBmap2, uint16(LenBmap2), dbig)
+	dataBig := BendianSlice16(data)
+	return MkDES(g, id, DEtypeBmap2, uint16(LenBmap2), dataBig)
 }
 
 // Make DE set packet: 4-byte bitmap
 func MkDeSetBmap4(g DEGroup, id byte, data uint32) []byte {
-	dbig := []byte{}
-	dbig = binary.BigEndian.AppendUint32(dbig, data)
-	return MkDES(g, id, DEtypeBmap4, uint16(LenBmap4), dbig)
+	dataBig := BendianSlice32(data)
+	return MkDES(g, id, DEtypeBmap4, uint16(LenBmap4), dataBig)
 }
 
 // Make DE report packet
@@ -395,9 +399,8 @@ func MkDeRepEnum(g DEGroup, id byte, data byte) []byte {
 
 // Make DE report packet: Uint/value
 func MkDeRepUint(g DEGroup, id byte, data uint32) []byte {
-	dbig := []byte{}
-	dbig = binary.BigEndian.AppendUint32(dbig, data)
-	return MkDER(g, id, DEtypeUint, uint16(LenUint), dbig)
+	dataBig := BendianSlice32(data)
+	return MkDER(g, id, DEtypeUint, uint16(LenUint), dataBig)
 }
 
 // Make DE report packet: 1-Byte bitmap
@@ -407,16 +410,14 @@ func MkDeRepBmap1(g DEGroup, id byte, data byte) []byte {
 
 // Make DE report packet: 2-Byte bitmap
 func MkDeRepBmap2(g DEGroup, id byte, data uint16) []byte {
-	dbig := []byte{}
-	dbig = binary.BigEndian.AppendUint16(dbig, data)
-	return MkDER(g, id, DEtypeBmap2, uint16(LenBmap2), dbig)
+	dataBig := BendianSlice16(data)
+	return MkDER(g, id, DEtypeBmap2, uint16(LenBmap2), dataBig)
 }
 
 // Make DE report packet: 4-Byte bitmap
 func MkDeRepBmap4(g DEGroup, id byte, data uint32) []byte {
-	dbig := []byte{}
-	dbig = binary.BigEndian.AppendUint32(dbig, data)
-	return MkDER(g, id, DEtypeBmap4, uint16(LenBmap4), dbig)
+	dataBig := BendianSlice32(data)
+	return MkDER(g, id, DEtypeBmap4, uint16(LenBmap4), dataBig)
 }
 
 // Make DE fault report request packet
