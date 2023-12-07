@@ -1,5 +1,17 @@
 package pg
 
+import (
+	"errors"
+)
+
+var (
+	ErrCmdId       = errors.New("PG invalid CMD ID")
+	ErrTooShort    = errors.New("PG too short")
+	ErrLenMismatch = errors.New("PG data length mismatch")
+	ErrHeader1     = errors.New("PG header 1 is wrong")
+	ErrHeader2     = errors.New("PG header 2 is wrong")
+)
+
 const (
 	Head1       byte = 0x55
 	Head2       byte = 0xAA

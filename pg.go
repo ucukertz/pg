@@ -65,11 +65,10 @@ func Chksum(buf []byte) byte {
 // Verify checksum of buf is the same as chksum
 func ChksumVerify(buf []byte, chksum byte) error {
 	expected := Chksum(buf)
-	if chksum == expected {
-		return nil
-	} else {
-		return fmt.Errorf("CHKSUM got 0x%x but expected 0x%x", chksum, expected)
+	if chksum != expected {
+		return fmt.Errorf("PG chksum expected 0x%x but got 0x%x", expected, chksum)
 	}
+	return nil
 }
 
 // Create unbuilt packet with cid as Command ID
@@ -477,13 +476,13 @@ func MkSchSet(schList []SchPkt) []byte {
 // Parse buffer into base packet
 func Parse(buf []byte) (BasePkt, error) {
 	if len(buf) < int(PktMinLen) {
-		return BasePkt{}, fmt.Errorf("PG buffer is too short")
+		return BasePkt{}, ErrTooShort
 	}
 	if buf[IdxHead1] != Head1 {
-		return BasePkt{}, fmt.Errorf("PG header 1 is wrong")
+		return BasePkt{}, ErrHeader1
 	}
 	if buf[IdxHead2] != Head2 {
-		return BasePkt{}, fmt.Errorf("PG header 2 is wrong")
+		return BasePkt{}, ErrHeader2
 	}
 	err := ChksumVerify(buf[:len(buf)-1], buf[len(buf)-1])
 	if err != nil {
@@ -495,7 +494,7 @@ func Parse(buf []byte) (BasePkt, error) {
 	r := bytes.NewReader(dlenSlice)
 	binary.Read(r, binary.BigEndian, &pkt.DataLen)
 	if len(buf) != int(PktMinLen)+int(pkt.DataLen) {
-		return BasePkt{}, fmt.Errorf("PG packet data length mismatch")
+		return BasePkt{}, ErrLenMismatch
 	}
 	pkt.Data = buf[IdxData : uint16(IdxData)+pkt.DataLen]
 	pkt.Buf = append(pkt.Buf, buf...)
@@ -526,7 +525,7 @@ func DepFixedData(p DePkt) uint32 {
 // Parse buffer into DE packet
 func ParseDEP(buf []byte) (DePkt, error) {
 	if len(buf) < int(DEPktMinLen) {
-		return DePkt{}, fmt.Errorf("DEP buffer is too short")
+		return DePkt{}, ErrTooShort
 	}
 	dep := DePkt{}
 	dep.Group = DEGroup(buf[IdxDEPGroup])
@@ -536,7 +535,7 @@ func ParseDEP(buf []byte) (DePkt, error) {
 	r := bytes.NewReader(dlenSlice)
 	binary.Read(r, binary.BigEndian, &dep.Dlen)
 	if len(buf) < int(DEPktMinLen)+int(dep.Dlen) {
-		return DePkt{}, fmt.Errorf("DEP buffer is shorter than indicated by data length")
+		return DePkt{}, ErrLenMismatch
 	}
 	dataSlice := buf[IdxDEPdata : IdxDEPdata+IdxDEPkt(dep.Dlen)]
 	dep.DataRaw = append(dep.DataRaw, dataSlice...)
@@ -555,7 +554,7 @@ func ParseDEP(buf []byte) (DePkt, error) {
 func (p BasePkt) GetDEP() (DePkt, error) {
 	dep := DePkt{}
 	if p.CommandID != CmdDESet && p.CommandID != CmdDEReport {
-		return dep, fmt.Errorf("DEP Wrong command ID")
+		return dep, ErrCmdId
 	}
 	return ParseDEP(p.Data)
 }
@@ -564,7 +563,7 @@ func (p BasePkt) GetDEP() (DePkt, error) {
 func (p BasePkt) GetSchList() ([]SchPkt, error) {
 	var err error = nil
 	if p.CommandID != CmdSchedule {
-		return []SchPkt{}, fmt.Errorf("SCH Wrong command ID")
+		return []SchPkt{}, ErrCmdId
 	}
 
 	schNum := p.Data[0]
@@ -578,11 +577,11 @@ func (p BasePkt) GetSchList() ([]SchPkt, error) {
 		sch.Minute = p.Data[pIdx+int(IdxSchpMinute)]
 		sch.Dep, err = ParseDEP(p.Data[pIdx+int(IdxSchpDep):])
 		if err != nil {
-			return []SchPkt{}, fmt.Errorf("%s on schedule with id %d", err.Error(), sch.Id)
+			return []SchPkt{}, fmt.Errorf("%s on schedule id %d", err, sch.Id)
 		}
 		pIdx += int(SchHeadLen) + int(DEPktMinLen) + int(sch.Dep.Dlen)
 		if pIdx > int(p.DataLen)+1 {
-			return []SchPkt{}, fmt.Errorf("SCH more schedules expected")
+			return []SchPkt{}, ErrLenMismatch
 		}
 	}
 
