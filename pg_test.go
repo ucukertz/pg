@@ -131,7 +131,7 @@ func TestPgMk(t *testing.T) {
 		t.Error(err)
 	}
 
-	buf = MkDeSetBool(DegControl, 255, 100 /* Intentional */)
+	buf = MkDeSetBool(DegControl, 255, true)
 	t.Logf("5-4: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
@@ -173,7 +173,7 @@ func TestPgMk(t *testing.T) {
 		t.Error(err)
 	}
 
-	buf = MkDeSetBmap1(DegSensor, 252, math.MaxUint8-2)
+	buf = MkDeSetBmap1(DegSensor, 252, math.MaxUint8-1)
 	t.Logf("5-7: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
@@ -187,7 +187,7 @@ func TestPgMk(t *testing.T) {
 		t.Error(err)
 	}
 
-	buf = MkDeSetBmap2(DegSensor, 251, math.MaxUint16-3)
+	buf = MkDeSetBmap2(DegSensor, 251, math.MaxUint16-1)
 	t.Logf("5-8: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
@@ -201,7 +201,7 @@ func TestPgMk(t *testing.T) {
 		t.Error(err)
 	}
 
-	buf = MkDeSetBmap4(DegSensor, 250, math.MaxUint32-4)
+	buf = MkDeSetBmap4(DegSensor, 250, math.MaxUint32-1)
 	t.Logf("5-9: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
@@ -257,7 +257,7 @@ func TestPgMk(t *testing.T) {
 		t.Error(err)
 	}
 
-	buf = MkDeRepBool(DegControl, 255, 100 /* Intentional */)
+	buf = MkDeRepBool(DegControl, 255, true)
 	t.Logf("6-4: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
@@ -299,7 +299,7 @@ func TestPgMk(t *testing.T) {
 		t.Error(err)
 	}
 
-	buf = MkDeRepBmap1(DegSensor, 252, math.MaxUint8-2)
+	buf = MkDeRepBmap1(DegSensor, 252, math.MaxUint8-1)
 	t.Logf("6-7: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
@@ -313,7 +313,7 @@ func TestPgMk(t *testing.T) {
 		t.Error(err)
 	}
 
-	buf = MkDeRepBmap2(DegInfo, 251, math.MaxUint16-3)
+	buf = MkDeRepBmap2(DegInfo, 251, math.MaxUint16-1)
 	t.Logf("6-8: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
@@ -327,7 +327,7 @@ func TestPgMk(t *testing.T) {
 		t.Error(err)
 	}
 
-	buf = MkDeRepBmap4(DegControl, 250, math.MaxUint32-4)
+	buf = MkDeRepBmap4(DegControl, 250, math.MaxUint32-1)
 	t.Logf("6-9: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
@@ -414,6 +414,75 @@ func TestPgMk(t *testing.T) {
 		t.Error(err)
 	} else {
 		t.Logf("sch8-3: %s", pSch)
+	}
+
+	buf = MkSwupInitiate()
+	t.Logf("9-1: %x", buf)
+	p, err = Parse(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("p9-1: %s", p)
+
+	buf = MkSwupSrep(SrepNoInfo)
+	t.Logf("9-2: %x", buf)
+	p, err = Parse(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("p9-2: %s", p)
+	swup, err := p.GetSwup()
+	if err != nil || swup.Srep != SrepNoInfo {
+		t.Error(err)
+	}
+
+	buf = MkSwupSetChunksz(math.MaxUint16 - 1)
+	t.Logf("9-3: %x", buf)
+	p, err = Parse(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("p9-3: %s", p)
+	swup, err = p.GetSwup()
+	if err != nil || swup.Chunk.Size != math.MaxUint16-1 {
+		t.Error(err, swup.Chunk.Size)
+	}
+
+	buf = MkSwupStatus(true, false, SwupErrConn)
+	t.Logf("9-4: %x", buf)
+	p, err = Parse(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("p9-4: %s", p)
+	swup, err = p.GetSwup()
+	if err != nil ||
+		(!swup.Status.Finish || swup.Status.Success || swup.Status.Err != SwupErrConn) {
+		t.Error(err)
+	}
+
+	buf = MkSwupChunkReq(math.MaxUint32 - 1)
+	t.Logf("9-5: %x", buf)
+	p, err = Parse(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("p9-5: %s", p)
+	swup, err = p.GetSwup()
+	if err != nil || swup.Chunk.Idx != math.MaxUint32-1 {
+		t.Error(err)
+	}
+
+	buf = MkSwupChunk(math.MaxUint32-1, []byte{0xAA, 0xBB})
+	t.Logf("9-6: %x", buf)
+	p, err = Parse(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("p9-6: %s", p)
+	swup, err = p.GetSwup()
+	if err != nil || swup.Chunk.Idx != math.MaxUint32-1 || swup.Chunk.Size != 2 {
+		t.Error(err)
 	}
 }
 

@@ -1,25 +1,25 @@
 package pg
 
-import (
-	"errors"
-)
+type Error struct {
+	msg string
+}
+
+func (e *Error) Error() string {
+	return e.msg
+}
 
 var (
-	ErrCmdId       = errors.New("PG invalid CMD ID")
-	ErrTooShort    = errors.New("PG too short")
-	ErrLenMismatch = errors.New("PG data length mismatch")
-	ErrHeader1     = errors.New("PG header 1 is wrong")
-	ErrHeader2     = errors.New("PG header 2 is wrong")
+	ErrChksum      = &Error{"PG chksum"}
+	ErrCmdId       = &Error{"PG invalid CMD ID"}
+	ErrTooShort    = &Error{"PG too short"}
+	ErrLenMismatch = &Error{"PG data length mismatch"}
+	ErrInvalidData = &Error{"PG invalid data"}
+	ErrSchedule    = &Error{"PG schedule"}
 )
 
 const (
-	Head1       byte = 0x55
-	Head2       byte = 0xAA
-	PktMinLen   byte = 7
-	DEPktMinLen byte = 5
-	DlenLen     byte = 2
-	TsyncDlen   byte = 8
-	SchHeadLen  byte = 4
+	Head1 byte = 0x55
+	Head2 byte = 0xAA
 )
 
 type CmdID = byte // Command ID
@@ -33,6 +33,7 @@ const (
 	CmdDEReport                   // Report Data Entity
 	CmdDEFault                    // Report faulty Data Entity
 	CmdSchedule                   // Data Entity scheduling
+	CmdSwUpdate                   // Software update
 )
 
 type Handshake = byte // Handshake data byte
@@ -49,13 +50,6 @@ const (
 	DeviceType
 	DeviceName
 	DeviceID
-)
-
-type DeviceInfoIdx = byte
-
-const (
-	IdxDevInfoReqbyte DeviceInfoIdx = iota
-	IdxDevInfoResp
 )
 
 type NetworkResetRB = byte // Network reset request byte
@@ -86,19 +80,6 @@ const (
 	TsyncLocal
 )
 
-type TimeSyncIdx = byte
-
-const (
-	IdxTsyncReqbyte TimeSyncIdx = iota
-	IdxTsyncYear
-	IdxTsyncMonth
-	IdxTsyncDate
-	IdxTsyncWeekday // 0 = Sunday - 6 = Saturday
-	IdxTsyncHour
-	IdxTsyncMinute
-	IdxTsyncSecond
-)
-
 type DEGroup byte
 
 const (
@@ -120,37 +101,6 @@ const (
 	DEtypeBmap4
 )
 
-type IdxBasePkt = byte
-
-const (
-	IdxHead1 IdxBasePkt = iota
-	IdxHead2
-	IdxVer
-	IdxCmd
-	IdxDlen
-	IdxData IdxBasePkt = IdxDlen + IdxBasePkt(DlenLen)
-)
-
-type IdxDEPkt = byte
-
-const (
-	IdxDEPGroup IdxDEPkt = iota
-	IdxDEPID
-	IdxDEPtype
-	IdxDEPdlen
-	IdxDEPdata IdxDEPkt = IdxDEPdlen + IdxDEPkt(DlenLen)
-)
-
-type DetypeLen = byte // Fixed data Length of some DE types
-const (
-	LenBool  DetypeLen = 1
-	LenEnum  DetypeLen = 1
-	LenUint  DetypeLen = 4
-	LenBmap1 DetypeLen = 1
-	LenBmap2 DetypeLen = 2
-	LenBmap4 DetypeLen = 4
-)
-
 type DEF = byte // Data Entity fault
 const (
 	DefNone DEF = iota
@@ -163,20 +113,136 @@ const (
 	DefMalformed
 )
 
-type IdxDef = byte
+type SwupScmd = byte
 
 const (
-	IdxDefGroup IdxDef = iota
+	SwupScmdInitiate SwupScmd = iota
+	SwupScmdSrep
+	SwupScmdChunksz
+	SwupScmdStatus
+	SwupScmdChunkReq
+	SwupScmdChunk
+)
+
+type SwupSrep = byte
+
+const (
+	SrepAccept SwupSrep = iota
+	SrepReject
+	SrepNoInfo
+	SrepBusy
+)
+
+type SwupErr = byte
+
+const (
+	SwupOk SwupErr = iota
+	SwupErrUnknown
+	SwupErrConn
+	SwupErrOom
+)
+
+type SwupStatus struct {
+	Finish  bool
+	Success bool
+	Err     SwupErr
+}
+
+type SwupChunk struct {
+	Size uint16
+	Idx  uint32
+	Data []byte
+}
+
+type Swup struct {
+	Scmd   SwupScmd
+	Srep   SwupSrep
+	Status SwupStatus
+	Chunk  SwupChunk
+}
+
+/* LENGTHS */
+
+const (
+	LenPktMin   byte = 7
+	LenDePktMin byte = 5
+	LenDlen     byte = 2
+	LenTsync    byte = 8
+	LenSchHead  byte = 4
+
+	LenDeBool  uint16 = 1
+	LenDeEnum  uint16 = 1
+	LenDeUint  uint16 = 4
+	LenDeBmap1 uint16 = 1
+	LenDeBmap2 uint16 = 2
+	LenDeBmap4 uint16 = 4
+)
+
+const (
+	LenSwupDataInitiate uint16 = iota
+	LenSwupDataSrep
+	LenSwupDataChunksz
+	LenSwupDataStatus
+	LenSwupDataChunkReq
+	LenSwupDataChunk
+)
+
+/* INDEXES */
+
+const (
+	IdxDevInfoReqbyte byte = iota
+	IdxDevInfoResp
+)
+
+const (
+	IdxTsyncReqbyte byte = iota
+	IdxTsyncYear
+	IdxTsyncMonth
+	IdxTsyncDate
+	IdxTsyncWeekday // 0 = Sunday - 6 = Saturday
+	IdxTsyncHour
+	IdxTsyncMinute
+	IdxTsyncSecond
+)
+
+const (
+	IdxHead1 byte = iota
+	IdxHead2
+	IdxVer
+	IdxCmd
+	IdxDlen
+	IdxData byte = IdxDlen + LenDlen
+)
+
+const (
+	IdxDEPGroup byte = iota
+	IdxDEPID
+	IdxDEPtype
+	IdxDEPdlen
+	IdxDEPdata byte = IdxDEPdlen + LenDlen
+)
+
+const (
+	IdxDefGroup byte = iota
 	IdxDefID
 	IdxDefStatus
 )
 
-type idxSchPkt = byte
-
 const (
-	IdxSchpID idxSchPkt = iota
+	IdxSchpID byte = iota
 	IdxSchpWday
 	IdxSchpHour
 	IdxSchpMinute
 	IdxSchpDep
+)
+
+const (
+	IdxSwupStatFinished byte = iota
+	IdxSwupStatSuccess
+	IdxSwupStatError
+)
+
+const (
+	IdxSwupChunkidx  byte = iota
+	IdxSwupChunkData byte = 4
 )

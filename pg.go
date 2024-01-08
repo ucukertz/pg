@@ -2,7 +2,6 @@
 package pg
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"time"
@@ -66,7 +65,7 @@ func Chksum(buf []byte) byte {
 func ChksumVerify(buf []byte, chksum byte) error {
 	expected := Chksum(buf)
 	if chksum != expected {
-		return fmt.Errorf("PG chksum expected 0x%x but got 0x%x", expected, chksum)
+		return fmt.Errorf("%w expected 0x%x but got 0x%x", ErrChksum, expected, chksum)
 	}
 	return nil
 }
@@ -89,21 +88,23 @@ func (pkt *BuildPkt) Append(data []byte) {
 }
 
 // Convert u16 value to its big endlian slice representation
-func BendianSlice16(v uint16) []byte {
-	slice := [2]byte{byte(v >> 8), byte(v)}
+func U16ToBslice(v uint16) []byte {
+	var slice [2]byte
+	binary.BigEndian.PutUint16(slice[:], v)
 	return slice[:]
 }
 
-// Convert u32 value to its big endlian slice representation
-func BendianSlice32(v uint32) []byte {
-	slice := [4]byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
+// Convert uint32 value to its big endlian slice representation
+func U32ToBslice(v uint32) []byte {
+	var slice [4]byte
+	binary.BigEndian.PutUint32(slice[:], v)
 	return slice[:]
 }
 
 // Build DE packet from parameters then append it to unbuilt packet
 func (pkt *BuildPkt) AppendDEPkt(g DEGroup, id byte, t DEtype, dlen uint16, data []byte) {
 	pkt.Append([]byte{byte(g), id, byte(t)})
-	dlenBig := BendianSlice16(dlen)
+	dlenBig := U16ToBslice(dlen)
 	pkt.Append(dlenBig)
 	pkt.Append(data[:dlen])
 }
@@ -112,15 +113,15 @@ func (pkt *BuildPkt) AppendDEPkt(g DEGroup, id byte, t DEtype, dlen uint16, data
 func (pkt *BuildPkt) AppendDEPktFixed(g DEGroup, id byte, t DEtype, dlen uint16, data uint32) {
 	dlen = EnforceDElen(t, dlen)
 	pkt.Append([]byte{byte(g), id, byte(t)})
-	dlenBig := BendianSlice16(dlen)
+	dlenBig := U16ToBslice(dlen)
 	pkt.Append(dlenBig)
 	if dlen == 1 {
 		pkt.AppendOne(byte(data))
 	} else if dlen == 2 {
-		dataBig := BendianSlice16(uint16(data))
+		dataBig := U16ToBslice(uint16(data))
 		pkt.Append(dataBig)
 	} else if dlen == 4 {
-		dataBig := BendianSlice32(uint32(data))
+		dataBig := U32ToBslice(uint32(data))
 		pkt.Append(dataBig)
 	}
 }
@@ -128,7 +129,7 @@ func (pkt *BuildPkt) AppendDEPktFixed(g DEGroup, id byte, t DEtype, dlen uint16,
 // Transform unbuilt packet into base packet
 func (p BuildPkt) Build() BasePkt {
 	Pkt := BasePkt{Ver: p.Ver, CommandID: p.CommandID, DataLen: p.DataLen, Data: p.Data}
-	buf := make([]byte, 0, int(PktMinLen)+len(p.Data))
+	buf := make([]byte, 0, int(LenPktMin)+len(p.Data))
 	buf = append(buf, Head1, Head2, Pkt.Ver, Pkt.CommandID)
 	buf = binary.BigEndian.AppendUint16(buf, Pkt.DataLen)
 	buf = append(buf, Pkt.Data...)
@@ -293,17 +294,17 @@ func MkDeResetAllReq() []byte {
 func EnforceDElen(t DEtype, dlen uint16) uint16 {
 	switch t {
 	case DEtypeBool:
-		return uint16(LenBool)
+		return LenDeBool
 	case DEtypeEnum:
-		return uint16(LenEnum)
+		return LenDeEnum
 	case DEtypeUint:
-		return uint16(LenUint)
+		return LenDeUint
 	case DEtypeBmap1:
-		return uint16(LenBmap1)
+		return LenDeBmap1
 	case DEtypeBmap2:
-		return uint16(LenBmap2)
+		return LenDeBmap2
 	case DEtypeBmap4:
-		return uint16(LenBmap4)
+		return LenDeBmap4
 	default:
 		return dlen
 	}
@@ -328,40 +329,40 @@ func MkDeSetStr(g DEGroup, id byte, data string) []byte {
 }
 
 // Make DE set packet: Boolean
-func MkDeSetBool(g DEGroup, id byte, data byte) []byte {
-	d := data
-	if d > 1 {
+func MkDeSetBool(g DEGroup, id byte, data bool) []byte {
+	var d byte = 0
+	if data {
 		d = 1
 	}
-	return MkDES(g, id, DEtypeBool, uint16(LenBool), []byte{d})
+	return MkDES(g, id, DEtypeBool, LenDeBool, []byte{d})
 }
 
 // Make DE set packet: Enumeration
 func MkDeSetEnum(g DEGroup, id byte, data byte) []byte {
-	return MkDES(g, id, DEtypeEnum, uint16(LenEnum), []byte{data})
+	return MkDES(g, id, DEtypeEnum, LenDeEnum, []byte{data})
 }
 
 // Make DE set packet: Uint/value
 func MkDeSetUint(g DEGroup, id byte, data uint32) []byte {
-	dataBig := BendianSlice32(data)
-	return MkDES(g, id, DEtypeUint, uint16(LenUint), dataBig)
+	dataBig := U32ToBslice(data)
+	return MkDES(g, id, DEtypeUint, LenDeUint, dataBig)
 }
 
 // Make DE set packet: 1-byte bitmap
 func MkDeSetBmap1(g DEGroup, id byte, data byte) []byte {
-	return MkDES(g, id, DEtypeBmap1, uint16(LenBmap1), []byte{data})
+	return MkDES(g, id, DEtypeBmap1, LenDeBmap1, []byte{data})
 }
 
 // Make DE set packet: 2-byte bitmap
 func MkDeSetBmap2(g DEGroup, id byte, data uint16) []byte {
-	dataBig := BendianSlice16(data)
-	return MkDES(g, id, DEtypeBmap2, uint16(LenBmap2), dataBig)
+	dataBig := U16ToBslice(data)
+	return MkDES(g, id, DEtypeBmap2, LenDeBmap2, dataBig)
 }
 
 // Make DE set packet: 4-byte bitmap
 func MkDeSetBmap4(g DEGroup, id byte, data uint32) []byte {
-	dataBig := BendianSlice32(data)
-	return MkDES(g, id, DEtypeBmap4, uint16(LenBmap4), dataBig)
+	dataBig := U32ToBslice(data)
+	return MkDES(g, id, DEtypeBmap4, LenDeBmap4, dataBig)
 }
 
 // Make DE report packet
@@ -383,40 +384,40 @@ func MkDeRepStr(g DEGroup, id byte, data string) []byte {
 }
 
 // Make DE report packet: Boolean
-func MkDeRepBool(g DEGroup, id byte, data byte) []byte {
-	d := data
-	if d > 1 {
+func MkDeRepBool(g DEGroup, id byte, data bool) []byte {
+	var d byte = 0
+	if data {
 		d = 1
 	}
-	return MkDER(g, id, DEtypeBool, uint16(LenBool), []byte{d})
+	return MkDER(g, id, DEtypeBool, LenDeBool, []byte{d})
 }
 
 // Make DE report packet: Enumeration
 func MkDeRepEnum(g DEGroup, id byte, data byte) []byte {
-	return MkDER(g, id, DEtypeEnum, uint16(LenEnum), []byte{data})
+	return MkDER(g, id, DEtypeEnum, LenDeEnum, []byte{data})
 }
 
 // Make DE report packet: Uint/value
 func MkDeRepUint(g DEGroup, id byte, data uint32) []byte {
-	dataBig := BendianSlice32(data)
-	return MkDER(g, id, DEtypeUint, uint16(LenUint), dataBig)
+	dataBig := U32ToBslice(data)
+	return MkDER(g, id, DEtypeUint, LenDeUint, dataBig)
 }
 
 // Make DE report packet: 1-Byte bitmap
 func MkDeRepBmap1(g DEGroup, id byte, data byte) []byte {
-	return MkDER(g, id, DEtypeBmap1, uint16(LenBmap1), []byte{data})
+	return MkDER(g, id, DEtypeBmap1, LenDeBmap1, []byte{data})
 }
 
 // Make DE report packet: 2-Byte bitmap
 func MkDeRepBmap2(g DEGroup, id byte, data uint16) []byte {
-	dataBig := BendianSlice16(data)
-	return MkDER(g, id, DEtypeBmap2, uint16(LenBmap2), dataBig)
+	dataBig := U16ToBslice(data)
+	return MkDER(g, id, DEtypeBmap2, LenDeBmap2, dataBig)
 }
 
 // Make DE report packet: 4-Byte bitmap
 func MkDeRepBmap4(g DEGroup, id byte, data uint32) []byte {
-	dataBig := BendianSlice32(data)
-	return MkDER(g, id, DEtypeBmap4, uint16(LenBmap4), dataBig)
+	dataBig := U32ToBslice(data)
+	return MkDER(g, id, DEtypeBmap4, LenDeBmap4, dataBig)
 }
 
 // Make DE fault report request packet
@@ -473,16 +474,69 @@ func MkSchSet(schList []SchPkt) []byte {
 	return p.Build().Buf
 }
 
+// Make software update iniitiate packet
+func MkSwupInitiate() []byte {
+	p := Create(CmdSwUpdate)
+	return p.Build().Buf
+}
+
+// Make sofware update simple reply packet
+func MkSwupSrep(srep SwupSrep) []byte {
+	p := Create(CmdSwUpdate)
+	p.AppendOne(srep)
+	return p.Build().Buf
+}
+
+// Make sofware update chunk size set packet
+func MkSwupSetChunksz(chunksz uint16) []byte {
+	p := Create(CmdSwUpdate)
+	dataBig := U16ToBslice(chunksz)
+	p.Append(dataBig)
+	return p.Build().Buf
+}
+
+// Make sofware update status packet
+func MkSwupStatus(finished bool, success bool, err SwupErr) []byte {
+	p := Create(CmdSwUpdate)
+	d := []byte{0, 0, 0}
+	if finished {
+		d[IdxSwupStatFinished] = 1
+	}
+	if success {
+		d[IdxSwupStatSuccess] = 1
+	}
+	d[IdxSwupStatError] = err
+	p.Append(d)
+	return p.Build().Buf
+}
+
+// Make sofware update chunk request packet
+func MkSwupChunkReq(chunkidx uint32) []byte {
+	p := Create(CmdSwUpdate)
+	dataBig := U32ToBslice(chunkidx)
+	p.Append(dataBig)
+	return p.Build().Buf
+}
+
+// Make sofware update chunk request packet
+func MkSwupChunk(chunkidx uint32, chunk []byte) []byte {
+	p := Create(CmdSwUpdate)
+	dataBig := U32ToBslice(chunkidx)
+	p.Append(dataBig)
+	p.Append(chunk)
+	return p.Build().Buf
+}
+
 // Parse buffer into base packet
 func Parse(buf []byte) (BasePkt, error) {
-	if len(buf) < int(PktMinLen) {
+	if len(buf) < int(LenPktMin) {
 		return BasePkt{}, ErrTooShort
 	}
 	if buf[IdxHead1] != Head1 {
-		return BasePkt{}, ErrHeader1
+		return BasePkt{}, fmt.Errorf("%w: Header 1", ErrInvalidData)
 	}
 	if buf[IdxHead2] != Head2 {
-		return BasePkt{}, ErrHeader2
+		return BasePkt{}, fmt.Errorf("%w: Header 2", ErrInvalidData)
 	}
 	err := ChksumVerify(buf[:len(buf)-1], buf[len(buf)-1])
 	if err != nil {
@@ -490,10 +544,9 @@ func Parse(buf []byte) (BasePkt, error) {
 	}
 
 	pkt := BasePkt{Ver: buf[IdxVer], CommandID: CmdID(buf[IdxCmd])}
-	dlenSlice := buf[IdxDlen : IdxDlen+DlenLen]
-	r := bytes.NewReader(dlenSlice)
-	binary.Read(r, binary.BigEndian, &pkt.DataLen)
-	if len(buf) != int(PktMinLen)+int(pkt.DataLen) {
+	dlenSlice := buf[IdxDlen : IdxDlen+LenDlen]
+	pkt.DataLen = binary.BigEndian.Uint16(dlenSlice)
+	if len(buf) != int(LenPktMin)+int(pkt.DataLen) {
 		return BasePkt{}, ErrLenMismatch
 	}
 	pkt.Data = buf[IdxData : uint16(IdxData)+pkt.DataLen]
@@ -508,38 +561,32 @@ func DepFixedData(p DePkt) uint32 {
 	if p.Dlen == 1 {
 		return uint32(p.DataRaw[0])
 	} else if p.Dlen == 2 {
-		var data uint16
-		r := bytes.NewReader(p.DataRaw)
-		binary.Read(r, binary.BigEndian, &data)
+		data := binary.BigEndian.Uint16(p.DataRaw)
 		return uint32(data)
 	} else if p.Dlen == 4 {
-		var data uint32
-		r := bytes.NewReader(p.DataRaw)
-		binary.Read(r, binary.BigEndian, &data)
+		data := binary.BigEndian.Uint32(p.DataRaw)
 		return data
-	} else {
-		return 0
 	}
+	return 0
 }
 
 // Parse buffer into DE packet
 func ParseDEP(buf []byte) (DePkt, error) {
-	if len(buf) < int(DEPktMinLen) {
+	if len(buf) < int(LenDePktMin) {
 		return DePkt{}, ErrTooShort
 	}
 	dep := DePkt{}
 	dep.Group = DEGroup(buf[IdxDEPGroup])
 	dep.Id = buf[IdxDEPID]
 	dep.Dtype = DEtype(buf[IdxDEPtype])
-	dlenSlice := buf[IdxDEPdlen : IdxDEPdlen+IdxDEPkt(DlenLen)]
-	r := bytes.NewReader(dlenSlice)
-	binary.Read(r, binary.BigEndian, &dep.Dlen)
-	if len(buf) < int(DEPktMinLen)+int(dep.Dlen) {
+	dlenSlice := buf[IdxDEPdlen : IdxDEPdlen+LenDlen]
+	dep.Dlen = binary.BigEndian.Uint16(dlenSlice)
+	if len(buf) < int(LenDePktMin)+int(dep.Dlen) {
 		return DePkt{}, ErrLenMismatch
 	}
-	dataSlice := buf[IdxDEPdata : IdxDEPdata+IdxDEPkt(dep.Dlen)]
+	dataSlice := buf[IdxDEPdata : IdxDEPdata+byte(dep.Dlen)]
 	dep.DataRaw = append(dep.DataRaw, dataSlice...)
-	dep.Buf = buf[:uint16(DEPktMinLen)+dep.Dlen]
+	dep.Buf = buf[:uint16(LenDePktMin)+dep.Dlen]
 
 	if dep.Dtype != DEtypeRaw && dep.Dtype != DEtypeString {
 		dep.Data = DepFixedData(dep)
@@ -577,13 +624,66 @@ func (p BasePkt) GetSchList() ([]SchPkt, error) {
 		sch.Minute = p.Data[pIdx+int(IdxSchpMinute)]
 		sch.Dep, err = ParseDEP(p.Data[pIdx+int(IdxSchpDep):])
 		if err != nil {
-			return []SchPkt{}, fmt.Errorf("%s on schedule id %d", err, sch.Id)
+			return []SchPkt{}, fmt.Errorf("%w %w on schedule id %d", ErrSchedule, err, sch.Id)
 		}
-		pIdx += int(SchHeadLen) + int(DEPktMinLen) + int(sch.Dep.Dlen)
+		pIdx += int(LenSchHead) + int(LenDePktMin) + int(sch.Dep.Dlen)
 		if pIdx > int(p.DataLen)+1 {
 			return []SchPkt{}, ErrLenMismatch
 		}
 	}
 
 	return schList, nil
+}
+
+// Get Software update command info
+func (p BasePkt) GetSwup() (Swup, error) {
+	swup := Swup{}
+	if p.CommandID != CmdSwUpdate {
+		return swup, ErrCmdId
+	}
+
+	switch p.DataLen {
+	case LenSwupDataInitiate:
+		swup.Scmd = SwupScmdInitiate
+	case LenSwupDataSrep:
+		swup.Scmd = SwupScmdSrep
+	case LenSwupDataChunksz:
+		swup.Scmd = SwupScmdChunksz
+	case LenSwupDataStatus:
+		swup.Scmd = SwupScmdStatus
+	case LenSwupDataChunkReq:
+		swup.Scmd = SwupScmdChunkReq
+	default:
+		swup.Scmd = SwupScmdChunk
+	}
+
+	if swup.Scmd == SwupScmdChunkReq || swup.Scmd == SwupScmdChunk {
+		swup.Chunk.Idx = binary.BigEndian.Uint32(p.Data)
+		if swup.Scmd == SwupScmdChunk {
+			swup.Chunk.Data = p.Data[4:]
+			swup.Chunk.Size = uint16(len(swup.Chunk.Data))
+			return swup, nil
+		}
+	} else if swup.Scmd == SwupScmdChunksz {
+		swup.Chunk.Size = binary.BigEndian.Uint16(p.Data)
+	}
+
+	if swup.Scmd == SwupScmdInitiate {
+		return swup, nil
+	} else if swup.Scmd == SwupScmdSrep {
+		swup.Srep = p.Data[0]
+	} else if swup.Scmd == SwupScmdStatus {
+		if p.Data[IdxSwupStatFinished] > 0 {
+			swup.Status.Finish = true
+		} else {
+			swup.Status.Finish = false
+		}
+		if p.Data[IdxSwupStatSuccess] > 0 {
+			swup.Status.Success = true
+		} else {
+			swup.Status.Success = false
+		}
+		swup.Status.Err = p.Data[IdxSwupStatError]
+	}
+	return swup, nil
 }
