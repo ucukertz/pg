@@ -198,15 +198,9 @@ func (p SchPkt) String() string {
 }
 
 // Make handshake packet
-func MkHandshake(hs Handshake) []byte {
+func MkHandshake(msg []byte) []byte {
 	p := Create(CmdHandshake)
-	p.AppendOne(hs)
-	return p.Build().Buf
-}
-
-// Make connection end request handshake packet
-func MkHandshakeEnd() []byte {
-	p := Create(CmdHandshake)
+	p.Append(msg)
 	return p.Build().Buf
 }
 
@@ -427,9 +421,17 @@ func MkDeFaultAllReq() []byte {
 }
 
 // Make DE fault report packet: No fault on all DE
-func MkDeNoFaultAll() []byte {
+func MkDeFaultNoneAll() []byte {
 	p := Create(CmdDEFault)
 	p.AppendOne(0)
+	return p.Build().Buf
+}
+
+// Make DE fault acknowledgement packet
+func MkDeFaultAck(g DEGroup, id byte) []byte {
+	p := Create(CmdDEFault)
+	p.AppendOne(byte(g))
+	p.AppendOne(id)
 	return p.Build().Buf
 }
 
@@ -673,16 +675,8 @@ func (p BasePkt) GetSwup() (Swup, error) {
 	} else if swup.Scmd == SwupScmdSrep {
 		swup.Srep = p.Data[0]
 	} else if swup.Scmd == SwupScmdStatus {
-		if p.Data[IdxSwupStatFinished] > 0 {
-			swup.Status.Finish = true
-		} else {
-			swup.Status.Finish = false
-		}
-		if p.Data[IdxSwupStatSuccess] > 0 {
-			swup.Status.Success = true
-		} else {
-			swup.Status.Success = false
-		}
+		swup.Status.Finish = p.Data[IdxSwupStatFinished] > 0
+		swup.Status.Success = p.Data[IdxSwupStatSuccess] > 0
 		swup.Status.Err = p.Data[IdxSwupStatError]
 	}
 	return swup, nil

@@ -36,14 +36,6 @@ const (
 	CmdSwUpdate                   // Software update
 )
 
-type Handshake = byte // Handshake data byte
-const (
-	Heartbeat    Handshake = iota // This device is alive
-	HeartbeatACK                  // Acknowledge the other device is alive
-	DeTxFinish                    // All Data Entity needed for uplink transmitted
-	DeUplinked                    // All received Data Entity uplinked
-)
-
 type DeviceInfoRB = byte // Device info request byte
 const (
 	UplinkDest DeviceInfoRB = iota

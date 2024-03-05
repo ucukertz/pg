@@ -8,17 +8,9 @@ import (
 
 func TestPgMk(t *testing.T) {
 	SetVer(0)
-	buf := MkHandshakeEnd()
-	t.Logf("0-1: %x", buf)
-	p, err := Parse(buf)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Logf("p0-1: %s", p)
-
-	buf = MkHandshake(HeartbeatACK)
+	buf := MkHandshake([]byte("msg"))
 	t.Logf("0-2: %x", buf)
-	p, err = Parse(buf)
+	p, err := Parse(buf)
 	if err != nil {
 		t.Error(err)
 	}
@@ -349,7 +341,7 @@ func TestPgMk(t *testing.T) {
 	}
 	t.Logf("p7-1: %s", p)
 
-	buf = MkDeNoFaultAll()
+	buf = MkDeFaultNoneAll()
 	t.Logf("7-2: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
@@ -357,13 +349,21 @@ func TestPgMk(t *testing.T) {
 	}
 	t.Logf("p7-2: %s", p)
 
-	buf = MkDeFaultRep(DegSensor, 0, DefMalformed)
+	buf = MkDeFaultAck(DegSensor, 0)
 	t.Logf("7-3: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("p7-3: %s", p)
+
+	buf = MkDeFaultRep(DegSensor, 0, DefMalformed)
+	t.Logf("7-4: %x", buf)
+	p, err = Parse(buf)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("p7-4: %s", p)
 
 	buf = MkSchEraseAllReq()
 	t.Logf("8-1: %x", buf)
