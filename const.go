@@ -55,15 +55,17 @@ const (
 type NetworkStatusData = byte
 
 const (
-	NetCfgNG    NetworkStatusData = iota // Not configured
-	NetConnNG                            // Configured but connection can't be established
-	NetUplinkNG                          // Connected but can't uplink
-	NetUplinkOK                          // Uplink can be done
+	NetstatNoCfg    NetworkStatusData = iota // Not configured
+	NetstatNoConn                            // Configured but connection can't be established
+	NetstatNoUplink                          // Connected but can't uplink
+	NetstatOk                                // Uplink can be done
+)
 
-	// Configuring
-	CfgAP NetworkStatusData = 0xA1 // Access Point
-	CfgSC                          // Smart Config
-	CfgQC                          // Quick
+// Net configuring
+const (
+	NetstatCfgAP NetworkStatusData = iota + 0xA1 // Access Point
+	NetstatCfgSC                                 // Smart Config
+	NetstatCfgQC                                 // Quick
 )
 
 type TimesyncRB = byte // Time synchronization request byte

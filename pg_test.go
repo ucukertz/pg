@@ -56,7 +56,7 @@ func TestPgMk(t *testing.T) {
 	}
 	t.Logf("p2-2: %s", p)
 
-	buf = MkNetStatusReport(NetUplinkNG)
+	buf = MkNetStatusReport(NetstatNoUplink)
 	t.Logf("3-1: %x", buf)
 	p, err = Parse(buf)
 	if err != nil {
