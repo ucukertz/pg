@@ -44,28 +44,27 @@ const (
 	DeviceID
 )
 
-type NetworkResetRB = byte // Network reset request byte
+type NetRstRB = byte // Network reset request byte
 const (
-	NetDefault NetworkResetRB = iota
-	NetAP                     // Access Point
-	NetSC                     // Smart Config
-	NetQC                     // Quick
+	NetDefault NetRstRB = iota
+	NetAP               // Access Point
+	NetSC               // Smart Config
+	NetQC               // Quick
 )
 
-type NetworkStatusData = byte
-
+type NetstatData = byte // Network status data
 const (
-	NetstatNoCfg    NetworkStatusData = iota // Not configured
-	NetstatNoConn                            // Configured but connection can't be established
-	NetstatNoUplink                          // Connected but can't uplink
-	NetstatOk                                // Uplink can be done
+	NetstatNoCfg    NetstatData = iota // Not configured
+	NetstatNoConn                      // Configured but connection can't be established
+	NetstatNoUplink                    // Connected but can't uplink
+	NetstatOk                          // Uplink can be done
 )
 
 // Net configuring
 const (
-	NetstatCfgAP NetworkStatusData = iota + 0xA1 // Access Point
-	NetstatCfgSC                                 // Smart Config
-	NetstatCfgQC                                 // Quick
+	NetstatCfgAP NetstatData = iota + 0xA1 // Access Point
+	NetstatCfgSC                           // Smart Config
+	NetstatCfgQC                           // Quick
 )
 
 type TimesyncRB = byte // Time synchronization request byte
@@ -74,16 +73,14 @@ const (
 	TsyncLocal
 )
 
-type DEGroup byte
-
+type DEGroup byte // Data Entity group
 const (
 	DegInfo DEGroup = iota
 	DegSensor
 	DegControl
 )
 
-type DEtype byte
-
+type DEtype byte // Data Entity types
 const (
 	DEtypeRaw DEtype = iota
 	DEtypeString
@@ -107,8 +104,7 @@ const (
 	DefMalformed
 )
 
-type SwupScmd = byte
-
+type SwupScmd = byte // Software update subcommands
 const (
 	SwupScmdInitiate SwupScmd = iota
 	SwupScmdSrep
@@ -118,8 +114,7 @@ const (
 	SwupScmdChunk
 )
 
-type SwupSrep = byte
-
+type SwupSrep = byte // Software update simple reply byte
 const (
 	SrepAccept SwupSrep = iota
 	SrepReject
@@ -127,8 +122,7 @@ const (
 	SrepBusy
 )
 
-type SwupErr = byte
-
+type SwupErr = byte // Software update error
 const (
 	SwupOk SwupErr = iota
 	SwupErrUnknown
@@ -136,18 +130,21 @@ const (
 	SwupErrOom
 )
 
+// Software update status
 type SwupStatus struct {
 	Finish  bool
 	Success bool
 	Err     SwupErr
 }
 
+// Software update chunk
 type SwupChunk struct {
 	Size uint16
 	Idx  uint32
 	Data []byte
 }
 
+// Software update packet info
 type Swup struct {
 	Scmd   SwupScmd
 	Srep   SwupSrep
@@ -237,6 +234,7 @@ const (
 )
 
 const (
-	IdxSwupChunkidx  byte = iota
+	IdxSwupSrep      byte = 0
+	IdxSwupChunkidx  byte = 0
 	IdxSwupChunkData byte = 4
 )

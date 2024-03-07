@@ -226,7 +226,7 @@ func MkUinfoResp(rb DeviceInfoRB, resp string) []byte {
 }
 
 // Make network reset request packet
-func MkNetResetReq(rb NetworkResetRB) []byte {
+func MkNetResetReq(rb NetRstRB) []byte {
 	p := Create(CmdNetworkReset)
 	p.AppendOne(rb)
 	return p.Build().Buf
@@ -245,7 +245,7 @@ func MkNetStatusReportACK() []byte {
 }
 
 // Make network status report packet
-func MkNetStatusReport(r NetworkStatusData) []byte {
+func MkNetStatusReport(r NetstatData) []byte {
 	p := Create(CmdNetworkStatus)
 	p.AppendOne(r)
 	return p.Build().Buf
@@ -662,7 +662,7 @@ func (p BasePkt) GetSwup() (Swup, error) {
 	if swup.Scmd == SwupScmdChunkReq || swup.Scmd == SwupScmdChunk {
 		swup.Chunk.Idx = binary.BigEndian.Uint32(p.Data)
 		if swup.Scmd == SwupScmdChunk {
-			swup.Chunk.Data = p.Data[4:]
+			swup.Chunk.Data = p.Data[IdxSwupChunkData:]
 			swup.Chunk.Size = uint16(len(swup.Chunk.Data))
 			return swup, nil
 		}
@@ -673,7 +673,7 @@ func (p BasePkt) GetSwup() (Swup, error) {
 	if swup.Scmd == SwupScmdInitiate {
 		return swup, nil
 	} else if swup.Scmd == SwupScmdSrep {
-		swup.Srep = p.Data[0]
+		swup.Srep = p.Data[IdxSwupSrep]
 	} else if swup.Scmd == SwupScmdStatus {
 		swup.Status.Finish = p.Data[IdxSwupStatFinished] > 0
 		swup.Status.Success = p.Data[IdxSwupStatSuccess] > 0
